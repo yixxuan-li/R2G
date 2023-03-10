@@ -1,0 +1,19 @@
+# ninja log v5
+3	11504	1660984506754866256	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/ball_query_gpu.o	9d5b7be4e6ccddf
+4	11686	1660984506938866886	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/group_points_gpu.o	fdafc8ca54dc4f34
+3	11724	1660984506974867010	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/interpolate_gpu.o	836d8426f75f3c28
+4	12339	1660984507590869122	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/sampling_gpu.o	dc228ecf646a9bb0
+2	17726	1660984512978887627	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/group_points.o	dae9316c48123115
+1	17855	1660984513106888067	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/interpolate.o	3fd6069669e87568
+1	17874	1660984513126888137	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/ball_query.o	d7434bf9b9fc9504
+1	18055	1660984513306888755	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/sampling.o	5c40b9582342375c
+2	20575	1660984515822897419	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/bindings.o	c6e5f1fc7a3dea95
+10	11520	1660993089332033646	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/interpolate_gpu.o	11a12b126fcb7a6f
+10	11695	1660993089504034913	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/ball_query_gpu.o	b2526471eb1eafa9
+10	11754	1660993089564035354	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/group_points_gpu.o	d67c2fa806ba6675
+11	11916	1660993089728036561	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/sampling_gpu.o	fc804445bd1d1784
+8	17565	1660993095376078133	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/ball_query.o	eabe00426b3cf801
+8	18155	1660993095964082458	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/interpolate.o	512643ec9dba3bf6
+9	19334	1660993097144091136	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/group_points.o	f895bd91c3820030
+8	19371	1660993097180091402	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/sampling.o	4b018eba4626720b
+9	21833	1660993099640109489	/data1/liyixuan/referit_my/referit3d/external_tools/pointnet2/build/temp.linux-x86_64-3.6/_ext_src/src/bindings.o	b20f14314a3c42ab
