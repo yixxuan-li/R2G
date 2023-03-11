@@ -1,5 +1,0 @@
-/data1/liyixuan/referit_my/referit3d/models/backbone/example/build/CMakeFiles/rebuild_cache.dir
-/data1/liyixuan/referit_my/referit3d/models/backbone/example/build/CMakeFiles/relation.dir
-/data1/liyixuan/referit_my/referit3d/models/backbone/example/build/CMakeFiles/edit_cache.dir
-/data1/liyixuan/referit_my/referit3d/models/backbone/example/build/pybind11/CMakeFiles/rebuild_cache.dir
-/data1/liyixuan/referit_my/referit3d/models/backbone/example/build/pybind11/CMakeFiles/edit_cache.dir

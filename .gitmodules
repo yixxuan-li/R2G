@@ -1,0 +1,3 @@
+[submodule "referit3d"]
+	path = referit3d
+	url = git@github.com:referit3d/referit3d.git

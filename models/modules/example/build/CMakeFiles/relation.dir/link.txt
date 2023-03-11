@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -DNDEBUG  -shared  -o relation.cpython-36m-x86_64-linux-gnu.so CMakeFiles/relation.dir/relation.cpp.o -flto 

@@ -329,6 +329,12 @@ if __name__ == '__main__':
             scan = data_loaders['test'].dataset.scans[vis_res[i_index]['scan_id']]
             ppos = vis_res[i_index]['predicted_target_pos']
             pos = vis_res[i_index]['target_pos']
+            edge = vis_res[i_index]['edge_prob']
+
+            out['edge'] = vis_res[i_index]['edge_prob'][ppos, pos].tolist()
+            if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) == 0:
+                continue
+
 
             ins_simi = {}
             token_simi = {}

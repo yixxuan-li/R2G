@@ -1,12 +1,18 @@
 """
 Handle the model trainging.
-include: set_gpu_to_zero_position(), create_logger(), seed_training_code(), Visualizer().
+include: set_gpu_to_zero_position(), create_logger(), seed_training_code(), Visualizer(), make_batch_keys()
+        single_epoch_train(), compute_losses(), evaluate_on_dataset(), detailed_predictions_on_dataset(), 
+        save_predictions_for_visualization(), prediction_stats(), cls_pred_stats(), save_state_dicts()
+        load_state_dicts().
+
+        Class: AverageMeter(), Visualizer(), GradualWarmupScheduler().
 
 
 
 
 """
 import os
+import os.path as osp
 import sys
 import logging
 import random
@@ -62,6 +68,73 @@ class Visualizer():
 
     def log_scalar(self, tag, scalar_value, epoch):
         self.writer.add_scalar(tag = tag, scalar_value = scalar_value, global_step = epoch)
+
+
+class GradualWarmupScheduler(_LRScheduler):
+    """ Gradually warm-up(increasing) learning rate in optimizer.
+    Proposed in 'Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour'.
+
+    Args:
+        optimizer (Optimizer): Wrapped optimizer.
+        multiplier: target learning rate = base lr * multiplier if multiplier > 1.0. if multiplier = 1.0, lr starts from 0 and ends up with the base_lr.
+        total_epoch: target learning rate is reached at total_epoch, gradually
+        after_scheduler: after target_epoch, use this scheduler(eg. ReduceLROnPlateau)
+    """
+
+    def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
+        self.multiplier = multiplier
+        if self.multiplier < 1.:
+            raise ValueError('multiplier should be greater thant or equal to 1.')
+        self.total_epoch = total_epoch
+        self.after_scheduler = after_scheduler
+        self.finished = False
+        super(GradualWarmupScheduler, self).__init__(optimizer)
+
+    def get_lr(self):
+        if self.last_epoch > self.total_epoch:
+            if self.after_scheduler:
+                if not self.finished:
+                    self.after_scheduler.base_lrs = [base_lr * self.multiplier for base_lr in self.base_lrs]
+                    self.finished = True
+                # return self.after_scheduler.get_last_lr()
+                return [group['lr'] for group in self.optimizer.param_groups]
+            return [base_lr * self.multiplier for base_lr in self.base_lrs]
+
+        if self.multiplier == 1.0:
+            return [base_lr * (float(self.last_epoch) / self.total_epoch) for base_lr in self.base_lrs]
+        else:
+            return [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
+
+    def step_ReduceLROnPlateau(self, metrics, epoch=None):
+        if epoch is None:
+            epoch = self.last_epoch + 1
+        self.last_epoch = epoch if epoch != 0 else 1  # ReduceLROnPlateau is called at the end of epoch, whereas others are called at beginning
+        if self.last_epoch <= self.total_epoch:
+            # warmup_lr = [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
+            assert(self.multiplier==1.)
+            warmup_lr = [base_lr * (float(self.last_epoch) / self.total_epoch) for base_lr in self.base_lrs]
+            for param_group, lr in zip(self.optimizer.param_groups, warmup_lr):
+                # print(epoch,lr,warmup_lr,self.last_epoch, self.total_epoch)
+                param_group['lr'] = lr
+        else:
+            if epoch is None:
+                self.after_scheduler.step(metrics, None)
+            else:
+                self.after_scheduler.step(metrics, epoch - self.total_epoch)
+
+    def step(self, epoch=None, metrics=None):
+        if type(self.after_scheduler) != ReduceLROnPlateau:
+            if self.finished and self.after_scheduler:
+                if epoch is None:
+                    self.after_scheduler.step(None)
+                else:
+                    self.after_scheduler.step(epoch - self.total_epoch)
+                # self._last_lr = self.after_scheduler.get_last_lr()
+                self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
+            else:
+                return super(GradualWarmupScheduler, self).step(epoch)
+        else:
+            self.step_ReduceLROnPlateau(metrics, epoch)
 
 def seed_training_code(manual_seed, strict=False):
     """Control pseudo-randomness for reproducibility.
@@ -497,6 +570,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 'ins_simi': F.softmax(res['ins_simi'][i, :], dim = -1).cpu().numpy(),
                 'ins_simi_index': res['ins_simi_index'][i, :].cpu().numpy(),
                 'obj_attr': res['obj_attr'][i, :].cpu().numpy(),
+                'edge_prob':res['edge_prob'][i,:, :, :].cpu().numpy()
                 # 'sr_prob': res['sr_prob'][i].cpu().numpy(),
                 # "tar_anc_sr": res['tar_anc_sr'][i].cpu().numpy(),
                 # "sr_type": batch['sr_type'][i],
@@ -578,68 +652,4 @@ def load_state_dicts(checkpoint_file, map_location=None, **kwargs):
         return epoch
 
 
-class GradualWarmupScheduler(_LRScheduler):
-    """ Gradually warm-up(increasing) learning rate in optimizer.
-    Proposed in 'Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour'.
 
-    Args:
-        optimizer (Optimizer): Wrapped optimizer.
-        multiplier: target learning rate = base lr * multiplier if multiplier > 1.0. if multiplier = 1.0, lr starts from 0 and ends up with the base_lr.
-        total_epoch: target learning rate is reached at total_epoch, gradually
-        after_scheduler: after target_epoch, use this scheduler(eg. ReduceLROnPlateau)
-    """
-
-    def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
-        self.multiplier = multiplier
-        if self.multiplier < 1.:
-            raise ValueError('multiplier should be greater thant or equal to 1.')
-        self.total_epoch = total_epoch
-        self.after_scheduler = after_scheduler
-        self.finished = False
-        super(GradualWarmupScheduler, self).__init__(optimizer)
-
-    def get_lr(self):
-        if self.last_epoch > self.total_epoch:
-            if self.after_scheduler:
-                if not self.finished:
-                    self.after_scheduler.base_lrs = [base_lr * self.multiplier for base_lr in self.base_lrs]
-                    self.finished = True
-                # return self.after_scheduler.get_last_lr()
-                return [group['lr'] for group in self.optimizer.param_groups]
-            return [base_lr * self.multiplier for base_lr in self.base_lrs]
-
-        if self.multiplier == 1.0:
-            return [base_lr * (float(self.last_epoch) / self.total_epoch) for base_lr in self.base_lrs]
-        else:
-            return [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
-
-    def step_ReduceLROnPlateau(self, metrics, epoch=None):
-        if epoch is None:
-            epoch = self.last_epoch + 1
-        self.last_epoch = epoch if epoch != 0 else 1  # ReduceLROnPlateau is called at the end of epoch, whereas others are called at beginning
-        if self.last_epoch <= self.total_epoch:
-            # warmup_lr = [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
-            assert(self.multiplier==1.)
-            warmup_lr = [base_lr * (float(self.last_epoch) / self.total_epoch) for base_lr in self.base_lrs]
-            for param_group, lr in zip(self.optimizer.param_groups, warmup_lr):
-                # print(epoch,lr,warmup_lr,self.last_epoch, self.total_epoch)
-                param_group['lr'] = lr
-        else:
-            if epoch is None:
-                self.after_scheduler.step(metrics, None)
-            else:
-                self.after_scheduler.step(metrics, epoch - self.total_epoch)
-
-    def step(self, epoch=None, metrics=None):
-        if type(self.after_scheduler) != ReduceLROnPlateau:
-            if self.finished and self.after_scheduler:
-                if epoch is None:
-                    self.after_scheduler.step(None)
-                else:
-                    self.after_scheduler.step(epoch - self.total_epoch)
-                # self._last_lr = self.after_scheduler.get_last_lr()
-                self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
-            else:
-                return super(GradualWarmupScheduler, self).step(epoch)
-        else:
-            self.step_ReduceLROnPlateau(metrics, epoch)
