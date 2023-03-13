@@ -2,3 +2,4 @@
 /vis/*
 /models/modules/relation_calculation/build/*
 /models/modules/relation_calculation/pybind11/*
+**/__pycache__
