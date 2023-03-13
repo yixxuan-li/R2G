@@ -474,7 +474,7 @@ if __name__ == '__main__':
 
             
             # pos_id = vis_res[i_index]['object_ids']
-            director = '/home/yixuan/referit_my/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
+            director = '/home/yixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
             scan.visualize_heatmap(pid= p_id, id = t_id, pos_id = None, filedir = director, utterance = vis_res[i_index]['utterance'].replace("/", "or"))
             with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
                 json.dump(out, file, indent = 4)
