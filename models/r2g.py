@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from . import MLP
-from . import NSM, Relation_Estimate, SR_Retrieval, Attr_Estimate
+from . import NSM, Relation_Estimate, SR_Retrieval, Attr_Estimate, Attr_Compute
 from .modules.default_blocks import single_object_encoder, token_encoder, token_embeder, object_decoder_for_clf, text_decoder_for_clf, object_lang_clf
 from .modules.utils import get_siamese_features
 from datasets.vocabulary import Vocabulary
@@ -173,15 +173,26 @@ class R2G(nn.Module):
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
         color_semantic_prob = color_onehot @ concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]]
 
-        ls_logits, tl_logits, mc_logits, tb_logits, lr_logits, losh_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['position_features'].cuda()], dim = 1), obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['size_feature'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
-        obj_attr = torch.cat([F.softmax(ls_logits, dim = -1), F.softmax(tl_logits, dim = -1), F.softmax(mc_logits, dim = -1), F.softmax(tb_logits, dim = -1), F.softmax(lr_logits, dim = -1), F.softmax(losh_logits, dim = -1)], dim = -1)
+        ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, batch['gt_class'], batch['object_mask'], batch['context_size'])
+
+        # ls_logits, tl_logits, mc_logits, tb_logits, lr_logits, losh_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
+        # obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['position_features'].cuda()], dim = 1), \
+        # obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['size_feature'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+
+        mc_logits, tb_logits, lr_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
+        obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
+        obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+
+        # obj_attr = torch.cat([F.softmax(ls_logits, dim = -1), F.softmax(tl_logits, dim = -1), F.softmax(mc_logits, dim = -1), F.softmax(tb_logits, dim = -1), F.softmax(lr_logits, dim = -1), F.softmax(losh_logits, dim = -1)], dim = -1)
         #          B x N x k       K x embedding 
-        ls_attr = F.softmax(ls_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
-        tl_attr = F.softmax(tl_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]].unsqueeze(0)
+        ls_attr = ls_logits.float() @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
+        tl_attr = tl_logits.float() @ concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]].unsqueeze(0)
         mc_attr = F.softmax(mc_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]].unsqueeze(0)
         tb_attr = F.softmax(tb_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]].unsqueeze(0)
         lr_attr = F.softmax(lr_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]].unsqueeze(0)
-        losh_attr = F.softmax(losh_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]].unsqueeze(0)
+        losh_attr =losh_logits.float() @ concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]].unsqueeze(0)
+
+        obj_attr = torch.cat([ls_logits, tl_logits, losh_logits, mc_logits, tb_logits, lr_logits], dim = -1)
 
 
         node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
@@ -204,7 +215,6 @@ class R2G(nn.Module):
             # edge_attr = F.softmax(batch['edge_attr'].cuda().float(), dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
             edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[8]:]
             edge_prob_logits = batch['edge_attr'].cuda().float()
-        print(edge_prob_logits[0,:3,0,:])
         
         if not self.args.language_relation_alpha > 0:
             # batch['lang_mask'][np.isinf(batch['lang_mask'])] = 1
@@ -292,12 +302,12 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     height_token = vocab.encode(height, add_begin_end = False)[0]   # 11 relation-semantic-label
     position = ['middle', 'corner']
     position_token = vocab.encode(position, add_begin_end = False)[0]   # 11 relation-semantic-label
-    length = ['long', 'short']
-    length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
     orientation = ['top', 'bottom']
     orientation_token = vocab.encode(orientation, add_begin_end = False)[0]   # 11 relation-semantic-label
     end = ['leftmost', 'rightmost']
     end_length = vocab.encode(end, add_begin_end = False)[0]   # 11 relation-semantic-label
+    length = ['long', 'short']
+    length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
 
     # attribute = ['large', 'small', 'tall', 'lower', 'end', 'middle', 'top', 'bottom', 'leftmost', 'rightmost', 'corner', 'long', 'short']
     # attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
@@ -306,7 +316,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'length', 'orientation', 'end', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
-    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + length_token + orientation_token + end_length + relation_semantic_tokenid
+    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + relation_semantic_tokenid
     # concept_vocab_seg = [len(object_semantic_filtertoken), len(object_semantic_filtertoken) + len(color_semantic_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(attribute_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(attribute_token) + len(relation_semantic_tokenid)]
     concept_vocab_seg = [524, 537, 1061, 1063, 1065, 1067, 1069, 1071, 1073, 1083]
     # make an object (segment) encoder for point-clouds with color

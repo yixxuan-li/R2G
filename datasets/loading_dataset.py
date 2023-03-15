@@ -185,8 +185,8 @@ class ListeningDataset(Dataset):
         # get the explicity node feature and padding it
         res['color_onehot'] = np.array([o.get_mean_color() for o in context]) ## use one-hot to represent color
         res['color_token'] = [np.array(self.vocab.encode(o.get_mean_color_token(), 1, add_begin_end = False)[0], dtype=np.long) for o in context]   # use token to represent color
-        res['size_feature'] = np.array([o.get_size() for o in context])
-        res['position_features'] = np.array([o.get_center_position() for o in context])
+        res['obj_size'] = np.array([o.get_size() for o in context]) #    [lx_,l_y,l_z]
+        res['obj_position'] = np.array([o.get_center_position() for o in context])
 
         color_f_tmp = np.zeros((self.max_context_size, 13), dtype=np.float32)
         color_t_tmp = np.zeros((self.max_context_size, 1), dtype=np.long)
@@ -194,13 +194,13 @@ class ListeningDataset(Dataset):
         position_tmp = np.zeros((self.max_context_size, 3), dtype=np.float32)
         color_f_tmp[:len(context)] = res['color_onehot']
         color_t_tmp[:len(context)] = res['color_token']
-        size_tmp[:len(context)] = res['size_feature']
-        position_tmp[:len(context)] = res['position_features']
+        size_tmp[:len(context)] = res['obj_size']
+        position_tmp[:len(context)] = res['obj_position']
 
         res['color_onehot'] = color_f_tmp
         res['color_token'] = color_t_tmp
-        res['size_feature'] = size_tmp
-        res['position_features'] = position_tmp
+        res['obj_size'] = size_tmp
+        res['obj_position'] = position_tmp
         res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
@@ -211,34 +211,43 @@ class ListeningDataset(Dataset):
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
         for i, o in enumerate(context):
             for j in range(i+1, len(context)):  
-                res['edge_vector'][i][j] = context[j].get_center_position() - context[i].get_center_position()
+                j_size = context[j].get_size()  #[lx_,l_y,l_z]
+                i_size = context[i].get_size()
+                res['edge_vector'][i][j] = context[i].get_center_position() - context[j].get_center_position()
                 res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                 if  True:#self.args is not None and not self.args.relation_pred:
                     res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(context[i].get_center_position() - context[j].get_center_position()), axis = 0))
                     res['edge_distance'][j][i] = res['edge_distance'][i][j]
                     if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
                         # front back
-                        if res['edge_vector'][i][j][0] > 0 :
-                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-                        elif res['edge_vector'][i][j][0] < 0:
-                            res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-                        # above below
+                        if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
+                        and (np.abs(res['edge_vector'][i][j][2])*2 < j_size[2] or np.abs(res['edge_vector'][i][j][2])*2 < i_size[2]):
+                            if res['edge_vector'][i][j][0] > 0:
+                                res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+                            elif res['edge_vector'][i][j][0] < 0:
+                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+                                res['edge_attr'][j][i] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+                        # support supported
+                        if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
+                        and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
+                            # res['edge_touch'][i][j] = 1
+                            if res['edge_vector'][i][j][2] > 0:
+                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                            elif res['edge_vector'][i][j][2] < 0:
+                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+
+                    # above below
+                    if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
+                    and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
                         if res['edge_vector'][i][j][2] > 0:
-                            res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                        elif res['edge_vector'][i][j][2] < 0:
                             res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-                        # support supported
-                        # res['edge_touch'][i][j] = 1
-                        if res['edge_vector'][i][j][2] > 0:
-                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
                         elif res['edge_vector'][i][j][2] < 0:
-                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                            res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 
         # model spatial relations in sr3d

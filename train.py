@@ -332,7 +332,7 @@ if __name__ == '__main__':
             edge = vis_res[i_index]['edge_prob']
 
             out['edge'] = vis_res[i_index]['edge_prob'][ppos, pos].tolist()
-            if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) == 0:
+            if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) <= 1:
                 continue
 
 

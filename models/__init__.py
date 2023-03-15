@@ -3,7 +3,7 @@ from .modules.lstm_encoder import LSTMEncoder
 from .modules.mlp import MLP
 from .modules.NSM import NSM
 from .modules.SR_estimate import Relation_Estimate, Attr_Estimate
-from .modules.SR_retrieval import SR_Retrieval
+from .modules.SR_retrieval import SR_Retrieval, Attr_Compute
 from .modules.word_embeddings import load_glove_pretrained_embedding, make_pretrained_embedding
 
 try:

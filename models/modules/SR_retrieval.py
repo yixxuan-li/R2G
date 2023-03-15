@@ -124,7 +124,71 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
                     
                      
     
+def Attr_Compute(mode = None, batch = None, full_obj_prob = None, object_mask = None, context_size = None, n = 1):
+
+    bsz, num_obj = full_obj_prob.shape[:2]
+
+    obj_size = batch['obj_size']# B x N x 3
+    obj_volume = batch['obj_size'][:, :, 0] * batch['obj_size'][:, :, 1] * batch['obj_size'][:, :, 2]
+
+    ls_attr = torch.zeros([bsz, num_obj, 2], dtype=torch.double)
+    tl_attr = torch.zeros([bsz, num_obj, 2], dtype=torch.double)
+    losh_attr = torch.zeros([bsz, num_obj, 2], dtype=torch.double)
+
+    if mode == 'sr3d':
+        ind = sr_index
+    elif mode == 'nr3d':
+        ind = nr_index
+    num_class = len(ind)
+    obj_prob = torch.zeros(num_class).unsqueeze(0).unsqueeze(0).repeat(bsz, num_obj, 1)# B x N x mini Class
+    for i in range(num_class):
+        obj_prob[:, :, i] = torch.sum(full_obj_prob[:, :, ind[i]], dim = -1)
+    obj_prob =  F.softmax(obj_prob, dim = -1) # B x N x mini-Class
+
+    if n == 1:
+        # get top 1 class for object
+        mask_obj_class = (torch.argmax(obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
+        # mask_obj_class = torch.where(torch.isinf(mask_obj_class), torch.full_like(mask_obj_class, -1), mask_obj_class)
+        # ------------------------ pytorch -----------------------------
+        for i in range(bsz):
+            batch_obj_prob = mask_obj_class[i]# N
+            batch_obj_class_set = set(batch_obj_prob.numpy())
+            batch_obj_class_set.discard(-np.inf)
+            for obj in batch_obj_class_set:
+                obj_ind = torch.nonzero(torch.eq(batch_obj_prob, obj)).squeeze(-1)
+                class_x = obj_size[i, obj_ind, 0]
+                class_y = obj_size[i, obj_ind, 1]
+                class_z = obj_size[i, obj_ind, 2]
+                class_volume = obj_volume[i, obj_ind]
+                _, x_index = torch.sort(class_x, dim = -1)
+                _, y_index = torch.sort(class_y, dim = -1)
+                _, z_index = torch.sort(class_z, dim = -1)
+                _, volume_index = torch.sort(class_volume, dim = -1)
+                ls_attr[i, obj_ind[volume_index[0]], 1] = 1
+                ls_attr[i, obj_ind[volume_index[-1]], 0] = 1
+                tl_attr[i, obj_ind[z_index[0]], 1] = 1
+                tl_attr[i, obj_ind[z_index[-1]], 0] = 1
+                losh_attr[i, obj_ind[x_index[0]], 1] = 1
+                losh_attr[i, obj_ind[x_index[-1]], 0] = 1
+                losh_attr[i, obj_ind[y_index[0]], 1] = 1
+                losh_attr[i, obj_ind[y_index[-1]], 0] = 1
+
+        return ls_attr.cuda().double(), tl_attr.cuda().double(), losh_attr.cuda().double()
+
+
+
+
+
+
+
+                
+
+
+
+
+
     
+
     
         
         

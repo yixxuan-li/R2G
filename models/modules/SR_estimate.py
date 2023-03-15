@@ -51,12 +51,12 @@ class Attr_Estimate(nn.Module):
         self.attention = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model= obj_feat * 3, nhead = n_head, activation= 'gelu'), num_layers = n_layer)
         self.slinear = nn.Linear(3, 128)
         self.plinear = nn.Linear(3, 128)
-        self.ls_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
-        self.tl_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
+        # self.ls_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
+        # self.tl_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
         self.mc_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
         self.tb_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
         self.lr_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
-        self.losh_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
+        # self.losh_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
 
         
 
@@ -82,18 +82,16 @@ class Attr_Estimate(nn.Module):
         attention_feature = self.attention(final_feature.transpose(0,1), src_key_padding_mask = (fianl_mask == float('-inf')).cuda() )
 
         # output the logits
-        ls = get_siamese_features(self.ls_head, attention_feature.transpose(0,1), aggregator=torch.stack)
-        tl = get_siamese_features(self.tl_head, attention_feature.transpose(0,1), aggregator=torch.stack)
+        # ls = get_siamese_features(self.ls_head, attention_feature.transpose(0,1), aggregator=torch.stack)
+        # tl = get_siamese_features(self.tl_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         mc = get_siamese_features(self.mc_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         tb = get_siamese_features(self.tb_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         lr = get_siamese_features(self.lr_head, attention_feature.transpose(0,1), aggregator=torch.stack)
-        losh = get_siamese_features(self.losh_head, attention_feature.transpose(0,1), aggregator=torch.stack)
+        # losh = get_siamese_features(self.losh_head, attention_feature.transpose(0,1), aggregator=torch.stack)
 
 
 
  
 
-        return ls[:, 1:, :], tl[:, 1:, :], mc[:, 1:, :], tb[:, 1:, :], lr[:, 1:, :], losh[:, 1:, :]
-
-
-
+        # return ls[:, 1:, :], tl[:, 1:, :], mc[:, 1:, :], tb[:, 1:, :], lr[:, 1:, :], losh[:, 1:, :]
+        return mc[:, 1:, :], tb[:, 1:, :], lr[:, 1:, :]
