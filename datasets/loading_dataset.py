@@ -18,7 +18,7 @@ def collate_my(batch_data):
         out[key] = [x[key] for x in batch_data]
 
     for key in out.keys():
-        if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class']:
+        if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr']:
             out[key] = torch.stack(out[key])
         elif key in ['lang_mask', 'tokens', 'token_embedding']:
             out[key] = pad_sequence(out[key], batch_first=True)
@@ -207,6 +207,9 @@ class ListeningDataset(Dataset):
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
+        # model the top and bottom
+        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
+        res['tb_attr'][:len(context), :] = 1
         for i, o in enumerate(context):
             for j in range(i+1, len(context)):  
                 j_size = context[j].get_size()  #[lx_,l_y,l_z]
@@ -243,9 +246,13 @@ class ListeningDataset(Dataset):
                         if res['edge_vector'][i][j][2] > 0:
                             res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['tb_attr'][i, 1] = 0
+                            res['tb_attr'][j, 0] = 0
                         elif res['edge_vector'][i][j][2] < 0:
                             res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['tb_attr'][i, 0] = 0
+                            res['tb_attr'][j, 1] = 0
 
 
         # model spatial relations in sr3d
