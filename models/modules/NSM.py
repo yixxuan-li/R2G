@@ -96,7 +96,7 @@ class InstructionsModel(nn.Module):
             output.append(hx.unsqueeze(dim = 1))
         output = torch.cat(output, dim =1)# B * n * H
         # B * n * H @ B * l * H
-        lang_mask[lang_mask == 0] = torch.tensor(-np.inf)
+        lang_mask[lang_mask == 0] = torch.tensor(-np.inf).cuda()
         attention = self.softmax((output @ tagged_description.transpose(1, 2)) + lang_mask.unsqueeze(1))   # B x instruction_length x l
         instructions = attention @ tagged_description   # B x instruction_length x embedding_size
         return instructions, encoded, attention,token_similarities

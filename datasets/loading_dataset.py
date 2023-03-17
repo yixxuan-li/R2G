@@ -28,8 +28,6 @@ def collate_my(batch_data):
             out[key] = torch.LongTensor(np.array(out[key]))
         elif key in ['utterance', 'stimulus_id', 'scan_id']:
             continue
-        elif key in ['object_center', 'object_size', 'scene_pc']:
-            out[key] = torch.Tensor(out[key])
         else:
             out[key] = torch.Tensor(np.array(out[key]))
 
