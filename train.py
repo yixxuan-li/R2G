@@ -290,7 +290,7 @@ if __name__ == '__main__':
                 out[key] = [x[key] for x in batch_data]
 
             for key in out.keys():
-                if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class']:
+                if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
                     out[key] = torch.stack(out[key])
                 elif key in ['lang_mask', 'tokens', 'token_embedding']:
                     out[key] = pad_sequence(out[key], batch_first=True)
@@ -332,8 +332,8 @@ if __name__ == '__main__':
             edge = vis_res[i_index]['edge_prob']
 
             out['edge'] = vis_res[i_index]['edge_prob'][ppos, pos].tolist()
-            if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) <= 1:
-                continue
+            # if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) <= 1:
+            #     continue
 
 
             ins_simi = {}
@@ -434,6 +434,9 @@ if __name__ == '__main__':
             p_obj['ptarget class'] = id_to_class[obj_class[ppos]]
             attr = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'long', 'short', 'top', 'bottom', 'leftmost', 'rightmost']
             obj_attr = vis_res[i_index]['obj_attr']
+            if np.sum(obj_attr[pos, 6:10]) < 1 and np.sum(obj_attr[ppos, 6:10]) < 1:
+                continue
+            
             for i in range(len(attr)):
                 t_obj[attr[i]] = obj_attr[pos][i].tolist()
                 p_obj[attr[i]] = obj_attr[ppos][i].tolist()

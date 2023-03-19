@@ -18,7 +18,7 @@ def collate_my(batch_data):
         out[key] = [x[key] for x in batch_data]
 
     for key in out.keys():
-        if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr']:
+        if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
             out[key] = torch.stack(out[key])
         elif key in ['lang_mask', 'tokens', 'token_embedding']:
             out[key] = pad_sequence(out[key], batch_first=True)
@@ -209,15 +209,29 @@ class ListeningDataset(Dataset):
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
         # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
-        res['tb_attr'][:len(context), :] = 1
+        res['tb_attr'][:len(context), :] = 2
+        # model middle or corner
+        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
+
+
         for i, o in enumerate(context):
+            i_size = context[i].get_size()
+            i_position = context[i].get_center_position()
+            i_scene_translation = i_position - res['scene_center'] 
+            # model middle or corner
+            if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1] and np.abs(i_scene_translation[2]) < i_size[2]:
+                res['mc_attr'][i, 0] = 1
+            if np.abs(res['scene_size'][0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(res['scene_size'][1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
+                res['mc_attr'][i, 1] = 1
+
+
             for j in range(i+1, len(context)):  
                 j_size = context[j].get_size()  #[lx_,l_y,l_z]
-                i_size = context[i].get_size()
-                res['edge_vector'][i][j] = context[i].get_center_position() - context[j].get_center_position()
+                j_position = context[j].get_center_position()
+                res['edge_vector'][i][j] = i_position - j_position
                 res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                 if  True:#self.args is not None and not self.args.relation_pred:
-                    res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(context[i].get_center_position() - context[j].get_center_position()), axis = 0))
+                    res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
                     res['edge_distance'][j][i] = res['edge_distance'][i][j]
                     if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
                         # front back
@@ -246,13 +260,17 @@ class ListeningDataset(Dataset):
                         if res['edge_vector'][i][j][2] > 0:
                             res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['tb_attr'][i, 1] = 0
+                            res['tb_attr'][i, 1] -= 1
                             res['tb_attr'][j, 0] = 0
                         elif res['edge_vector'][i][j][2] < 0:
                             res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                             res['tb_attr'][i, 0] = 0
-                            res['tb_attr'][j, 1] = 0
+                            res['tb_attr'][j, 1] -= 1
+            if res['tb_attr'][i, 1] != 1:
+                res['tb_attr'][i, 1] = 0
+
+
 
 
         # model spatial relations in sr3d
