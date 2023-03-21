@@ -209,7 +209,8 @@ class ListeningDataset(Dataset):
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
         # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
-        res['tb_attr'][:len(context), :] = 2
+        res['tb_attr'][:len(context), 1] = 2
+        res['tb_attr'][:len(context), 0] = 1
         # model middle or corner
         res['mc_attr'] = torch.zeros([self.max_context_size, 2])
 
@@ -219,7 +220,7 @@ class ListeningDataset(Dataset):
             i_position = context[i].get_center_position()
             i_scene_translation = i_position - res['scene_center'] 
             # model middle or corner
-            if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1] and np.abs(i_scene_translation[2]) < i_size[2]:
+            if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1]:
                 res['mc_attr'][i, 0] = 1
             if np.abs(res['scene_size'][0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(res['scene_size'][1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
                 res['mc_attr'][i, 1] = 1
@@ -268,6 +269,9 @@ class ListeningDataset(Dataset):
                             res['tb_attr'][i, 0] = 0
                             res['tb_attr'][j, 1] -= 1
             if res['tb_attr'][i, 1] != 1:
+                res['tb_attr'][i, 1] = 0
+            if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
+                res['tb_attr'][i, 0] = 0
                 res['tb_attr'][i, 1] = 0
 
 

@@ -313,12 +313,20 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     # attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
 
     # property_semantic = ['identity', 'color', 'function', 'attribute', 'relations'] # 4 properties, NSM: L + 2, L =1
-    property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'length', 'orientation', 'end', 'relations'] # 4 properties, NSM: L + 2, L =1
+    property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
     concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + relation_semantic_tokenid
-    # concept_vocab_seg = [len(object_semantic_filtertoken), len(object_semantic_filtertoken) + len(color_semantic_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(attribute_token), len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(attribute_token) + len(relation_semantic_tokenid)]
-    concept_vocab_seg = [524, 537, 1061, 1063, 1065, 1067, 1069, 1071, 1073, 1083]
+    concept_vocab_seg = [len(object_semantic_filtertoken), \
+                         len(object_semantic_filtertoken) + len(color_semantic_token), \
+                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
+                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token), \
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token), \
+                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
+                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
+                                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
+                                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(relation_semantic_tokenid)]
     # make an object (segment) encoder for point-clouds with color
     if args.obj_cls_alpha > 0:
         if args.object_encoder == 'pnet_pp':
