@@ -179,7 +179,7 @@ class R2G(nn.Module):
         # obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['position_features'].cuda()], dim = 1), \
         # obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['size_feature'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-        lr_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
+        lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
         obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
         obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
@@ -191,11 +191,12 @@ class R2G(nn.Module):
         tb_attr = batch['tb_attr'] @ concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]].unsqueeze(0)
         lr_attr = F.softmax(lr_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]].unsqueeze(0)
         losh_attr =losh_logits.float() @ concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]].unsqueeze(0)
+        curve_attr = F.softmax(curve_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]].unsqueeze(0)
 
-        obj_attr = torch.cat([ls_logits, tl_logits, losh_logits, batch['mc_attr'], batch['tb_attr'], lr_logits], dim = -1)
+        obj_attr = torch.cat([ls_logits, tl_logits, batch['mc_attr'], batch['tb_attr'], lr_logits, losh_logits], dim = -1)
 
 
-        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
+        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
         edge_prob = edge_prob_logits = None
 
 
@@ -203,17 +204,17 @@ class R2G(nn.Module):
         if self.args.relation_pred:
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             #          B x N x N x k       K x embedding 
-            edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[8]:]
+            edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[9]:]
         elif self.args.relation_retrieval:
             edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().double()
             # edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             #          B x N x N x k       K x embedding 
             # edge_attr = F.softmax(edge_prob_logits, dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
-            edge_attr = edge_prob_logits.cuda().float() @ concept_vocab[self.concept_vocab_seg[8]:]
+            edge_attr = edge_prob_logits.cuda().float() @ concept_vocab[self.concept_vocab_seg[9]:]
             result['edge_prob_logits'] = edge_prob_logits
         else:
             # edge_attr = F.softmax(batch['edge_attr'].cuda().float(), dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
-            edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[8]:]
+            edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[9]:]
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
         if not self.args.language_relation_alpha > 0:
@@ -308,15 +309,17 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     end_length = vocab.encode(end, add_begin_end = False)[0]   # 11 relation-semantic-label
     length = ['long', 'short']
     length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
+    curve = ['curve', 'pad']
+    curve_token = vocab.encode(curve, add_begin_end = False)[0]   # 11 relation-semantic-label
 
     # attribute = ['large', 'small', 'tall', 'lower', 'end', 'middle', 'top', 'bottom', 'leftmost', 'rightmost', 'corner', 'long', 'short']
     # attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
 
     # property_semantic = ['identity', 'color', 'function', 'attribute', 'relations'] # 4 properties, NSM: L + 2, L =1
-    property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'relations'] # 4 properties, NSM: L + 2, L =1
+    property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
-    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + relation_semantic_tokenid
+    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_tokenid
     concept_vocab_seg = [len(object_semantic_filtertoken), \
                          len(object_semantic_filtertoken) + len(color_semantic_token), \
                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
@@ -326,7 +329,8 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
                                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
                                                     len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
-                                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(relation_semantic_tokenid)]
+                                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token), \
+                                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token) + len(relation_semantic_tokenid)]
     # make an object (segment) encoder for point-clouds with color
     if args.obj_cls_alpha > 0:
         if args.object_encoder == 'pnet_pp':

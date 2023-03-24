@@ -570,7 +570,11 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 'ins_simi': F.softmax(res['ins_simi'][i, :], dim = -1).cpu().numpy(),
                 'ins_simi_index': res['ins_simi_index'][i, :].cpu().numpy(),
                 'obj_attr': res['obj_attr'][i, :].cpu().numpy(),
-                'edge_prob':res['edge_prob'][i,:, :, :].cpu().numpy()
+                'edge_prob':res['edge_prob'][i,:, :, :].cpu().numpy(),
+                'obj_center': batch['obj_position'][i].cpu().numpy(),
+                'obj_size': batch['obj_size'][i].cpu().numpy(),
+                'scene_center': batch['scene_center'][i].cpu().numpy(),
+                'scene_size': batch['scene_size'][i].cpu().numpy()
                 # 'sr_prob': res['sr_prob'][i].cpu().numpy(),
                 # "tar_anc_sr": res['tar_anc_sr'][i].cpu().numpy(),
                 # "sr_type": batch['sr_type'][i],

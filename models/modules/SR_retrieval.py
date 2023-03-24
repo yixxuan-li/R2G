@@ -130,6 +130,7 @@ def Attr_Compute(mode = None, batch = None, full_obj_prob = None, object_mask = 
 
     obj_size = batch['obj_size']# B x N x 3
     obj_volume = batch['obj_size'][:, :, 0] * batch['obj_size'][:, :, 1] * batch['obj_size'][:, :, 2]
+    obj_diagonal = batch['obj_size'][:, :, 0] * batch['obj_size'][:, :, 1]
 
     ls_attr = torch.zeros([bsz, num_obj, 2], dtype=torch.double)
     tl_attr = torch.zeros([bsz, num_obj, 2], dtype=torch.double)
@@ -160,18 +161,40 @@ def Attr_Compute(mode = None, batch = None, full_obj_prob = None, object_mask = 
                 class_y = obj_size[i, obj_ind, 1]
                 class_z = obj_size[i, obj_ind, 2]
                 class_volume = obj_volume[i, obj_ind]
+                class_dislogal = obj_diagonal[i, obj_ind]
                 _, x_index = torch.sort(class_x, dim = -1)
                 _, y_index = torch.sort(class_y, dim = -1)
                 _, z_index = torch.sort(class_z, dim = -1)
                 _, volume_index = torch.sort(class_volume, dim = -1)
-                ls_attr[i, obj_ind[volume_index[0]], 1] = 1
-                ls_attr[i, obj_ind[volume_index[-1]], 0] = 1
-                tl_attr[i, obj_ind[z_index[0]], 1] = 1
-                tl_attr[i, obj_ind[z_index[-1]], 0] = 1
-                losh_attr[i, obj_ind[x_index[0]], 1] = 1
-                losh_attr[i, obj_ind[x_index[-1]], 0] = 1
-                losh_attr[i, obj_ind[y_index[0]], 1] = 1
-                losh_attr[i, obj_ind[y_index[-1]], 0] = 1
+                _, losh_index = torch.sort(class_dislogal, dim = -1)
+                if obj_ind[volume_index[0]] != obj_ind[volume_index[-1]]:
+                    ls_attr[i, obj_ind[volume_index[0]], 1] = 1
+                    ls_attr[i, obj_ind[volume_index[-1]], 0] = 1
+                if obj_ind[z_index[0]] != obj_ind[z_index[-1]]:
+                    tl_attr[i, obj_ind[z_index[0]], 1] = 1
+                    tl_attr[i, obj_ind[z_index[-1]], 0] = 1
+                if obj_ind[losh_index[0]] != obj_ind[losh_index[-1]]:
+                    losh_attr[i, obj_ind[losh_index[0]], 1] = 1
+                    losh_attr[i, obj_ind[losh_index[-1]], 0] = 1
+                # if obj_ind[x_index[0]] != obj_ind[x_index[-1]]:
+                #     losh_attr[i, obj_ind[x_index[0]], 1] = 1
+                #     losh_attr[i, obj_ind[x_index[-1]], 0] = 1
+                # if obj_ind[y_index[0]] != obj_ind[y_index[-1]]:
+                #     losh_attr[i, obj_ind[y_index[0]], 1] = 1
+                #     losh_attr[i, obj_ind[y_index[-1]], 0] = 1
+                    
+                # if obj_ind[x_index[0]] != obj_ind[y_index[0]]:
+                #     if class_x[x_index[0]] <= class_y[y_index[0]]:
+                #         losh_attr[i, obj_ind[y_index[0]], 1] = 0
+                #     else:
+                #         losh_attr[i, obj_ind[x_index[0]], 1] = 0
+                # if obj_ind[x_index[-1]] != obj_ind[y_index[-1]]:
+                #     if class_x[x_index[-1]] >= class_y[y_index[-1]]:
+                #         losh_attr[i, obj_ind[y_index[-1]], 0] = 0
+                #     else:
+                #         losh_attr[i, obj_ind[x_index[-1]], 0] = 0
+
+
 
         return ls_attr.cuda().double(), tl_attr.cuda().double(), losh_attr.cuda().double()
 

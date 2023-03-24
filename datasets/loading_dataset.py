@@ -216,8 +216,8 @@ class ListeningDataset(Dataset):
 
 
         for i, o in enumerate(context):
-            i_size = context[i].get_size()
-            i_position = context[i].get_center_position()
+            i_size = res['obj_size'][i]
+            i_position = res['obj_position'][i]
             i_scene_translation = i_position - res['scene_center'] 
             # model middle or corner
             if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1]:
@@ -227,8 +227,8 @@ class ListeningDataset(Dataset):
 
 
             for j in range(i+1, len(context)):  
-                j_size = context[j].get_size()  #[lx_,l_y,l_z]
-                j_position = context[j].get_center_position()
+                j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
+                j_position = res['obj_position'][j]
                 res['edge_vector'][i][j] = i_position - j_position
                 res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                 if  True:#self.args is not None and not self.args.relation_pred:

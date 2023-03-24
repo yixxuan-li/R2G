@@ -57,6 +57,7 @@ class Attr_Estimate(nn.Module):
         # self.tb_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
         self.lr_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
         # self.losh_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
+        self.curve_head = MLP(in_feat_dims=obj_feat*3, out_channels=[128, 2], dropout_rate=[0.2])
 
         
 
@@ -87,6 +88,7 @@ class Attr_Estimate(nn.Module):
         # mc = get_siamese_features(self.mc_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         # tb = get_siamese_features(self.tb_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         lr = get_siamese_features(self.lr_head, attention_feature.transpose(0,1), aggregator=torch.stack)
+        curve = get_siamese_features(self.curve_head, attention_feature.transpose(0,1), aggregator=torch.stack)
         # losh = get_siamese_features(self.losh_head, attention_feature.transpose(0,1), aggregator=torch.stack)
 
 
@@ -94,4 +96,4 @@ class Attr_Estimate(nn.Module):
  
 
         # return ls[:, 1:, :], tl[:, 1:, :], mc[:, 1:, :], tb[:, 1:, :], lr[:, 1:, :], losh[:, 1:, :]
-        return lr[:, 1:, :]
+        return lr[:, 1:, :], curve[:, 1:, :]
