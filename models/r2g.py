@@ -296,7 +296,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     # prepare the properties and concept token ids 
     object_semantic_filtertoken = vocab.encode(object_class, add_begin_end = False)[0][:-1] # 525 object-semantic-label; -1 is the pad class
-    object_semantic_filtertoken_set = vocab.encode(object_class, add_begin_end = False)[0]
+    object_semantic_filtertoken_set = vocab.encode(object_class_set, add_begin_end = False)[0]
     # object_semantic_filter_index = [index for index, value in enumerate(object_semantic_token) if value != 3]#183
     # object_semantic_filtertoken =  [value for index, value in enumerate(object_semantic_token) if value != 3]#183
     
@@ -334,7 +334,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
-    function_semantic_token_set = vocab.encode(my_function, add_begin_end = False)[0]
+    function_semantic_token_set = vocab.encode(function_set, add_begin_end = False)[0]
     concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_tokenid
     concept_vocab_set = object_semantic_filtertoken_set + color_semantic_token + function_semantic_token_set + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_tokenid
     concept_vocab_seg = [len(object_semantic_filtertoken), \
