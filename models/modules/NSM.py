@@ -72,6 +72,7 @@ class InstructionsModel(nn.Module):
         self.decoder1 = nn.RNNCell(encoded_question_size, embedding_size, bias = False)
         # Use softmax as nn.Module to allow extracting attention weights
         self.softmax = nn.Softmax(dim=-1)
+        self.weight = nn.Parameter(torch.eye(embedding_size), requires_grad = True)
 
 
     def forward(self, vocab, description, lang_mask, language_len):
@@ -97,7 +98,7 @@ class InstructionsModel(nn.Module):
         output = torch.cat(output, dim =1)# B * n * H
         # B * n * H @ B * l * H
         lang_mask[lang_mask == 0] = torch.tensor(-np.inf).cuda()
-        attention = self.softmax((output @ tagged_description.transpose(1, 2)) + lang_mask.unsqueeze(1))   # B x instruction_length x l
+        attention = self.softmax(((output @ self.weight) @ tagged_description.transpose(1, 2)) + lang_mask.unsqueeze(1))   # B x instruction_length x l
         instructions = attention @ tagged_description   # B x instruction_length x embedding_size
         return instructions, encoded, attention,token_similarities
 
@@ -282,16 +283,13 @@ class NSM(nn.Module):
         self,
         node_attr,
         description,
-        concept_vocab,
-        concept_vocab_seg,
         property_embeddings,# 1 + L +1 
         node_mask,
         edge_attr = None,
-        relation_logits = None,
-        relation_vocab = None,
         context_size = None,
         lang_mask = None,
-        language_len = None
+        language_len = None,
+        concept_vocab_set = None
     ):
         """
         Dimensions:
@@ -315,7 +313,7 @@ class NSM(nn.Module):
         ## transform the description to instruction based on concept vocab
         ## instructions: B x instruction_length x embedding_size; encoded_questions:  B x LSTM-encoder-hidden-size
         instructions, encoded_questions, attention, token_similarities = self.instructions_model(
-            concept_vocab, description, lang_mask, language_len
+            concept_vocab_set, description, lang_mask, language_len
         )
 
         # Apply dropout to state and edge representations
@@ -329,7 +327,7 @@ class NSM(nn.Module):
         distribution = F.softmax(distribution + node_mask, dim = -1)
         prob = distribution.unsqueeze(1)
         ins_simi = []
-        simi = node_attr[:, :, 0, :].squeeze(2) @ concept_vocab.T#B x N x P x H  @ (C x H ).T-> B x N x C
+        simi = node_attr[:, :, 0, :].squeeze(2) @ concept_vocab_set.T#B x N x P x H  @ (C x H ).T-> B x N x C
         data, index = torch.sort(simi[:, :, 0:525], dim =-1, descending = True)
 
         ins_data = []
@@ -359,7 +357,7 @@ class NSM(nn.Module):
             )
             prob = torch.cat([prob, distribution.unsqueeze(1)], dim =1)
 
-            simi = instruction @ concept_vocab.T#B x H  @ (C x H ).T-> B x Cs
+            simi = instruction @ concept_vocab_set.T#B x H  @ (C x H ).T-> B x Cs
             idata, iindex = torch.sort(simi[:, :], dim =-1, descending = True)  
             ins_data.append(idata.unsqueeze(1))
             ins_index.append(iindex.unsqueeze(1))
