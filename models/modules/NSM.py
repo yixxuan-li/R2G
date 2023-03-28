@@ -72,7 +72,7 @@ class InstructionsModel(nn.Module):
         self.decoder1 = nn.RNNCell(encoded_question_size, embedding_size, bias = False)
         # Use softmax as nn.Module to allow extracting attention weights
         self.softmax = nn.Softmax(dim=-1)
-        self.weight = nn.Parameter(torch.eye(embedding_size), requires_grad = True)
+        # self.weight = nn.Parameter(torch.eye(embedding_size), requires_grad = True)
 
 
     def forward(self, vocab, description, lang_mask, language_len):
@@ -98,7 +98,7 @@ class InstructionsModel(nn.Module):
         output = torch.cat(output, dim =1)# B * n * H
         # B * n * H @ B * l * H
         lang_mask[lang_mask == 0] = torch.tensor(-np.inf).cuda()
-        attention = self.softmax(((output @ self.weight) @ tagged_description.transpose(1, 2)) + lang_mask.unsqueeze(1))   # B x instruction_length x l
+        attention = self.softmax((output @ tagged_description.transpose(1, 2)) + lang_mask.unsqueeze(1))   # B x instruction_length x l
         instructions = attention @ tagged_description   # B x instruction_length x embedding_size
         return instructions, encoded, attention,token_similarities
 
@@ -328,7 +328,7 @@ class NSM(nn.Module):
         prob = distribution.unsqueeze(1)
         ins_simi = []
         simi = node_attr[:, :, 0, :].squeeze(2) @ concept_vocab_set.T#B x N x P x H  @ (C x H ).T-> B x N x C
-        data, index = torch.sort(simi[:, :, 0:525], dim =-1, descending = True)
+        data, index = torch.sort(simi[:, :, :], dim =-1, descending = True)
 
         ins_data = []
         ins_index = []
