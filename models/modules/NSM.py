@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
+from transformers import BertModel
 import numpy as np
 
 from .utils import get_siamese_features
 
+BERT_PATH = '/home/yixuan/data/bert_pretrain/bert-base-cased'
 
 class Tagger(nn.Module):
     """
@@ -15,7 +17,7 @@ class Tagger(nn.Module):
         super(Tagger, self).__init__()
 
         self.default_embedding = nn.Parameter(torch.rand(embedding_size), requires_grad = True)
-        self.weight = nn.Parameter(torch.eye(embedding_size), requires_grad = True)# embedding_size * embedding_size
+        # self.weight = nn.Parameter(torch.eye(embedding_size), requires_grad = True)# embedding_size * embedding_size
 
     def forward(self, vocab, description):
         """
@@ -28,7 +30,7 @@ class Tagger(nn.Module):
         # calculate the similarity between description and concepts 
         # B x l x H, H x H, D+1 x H
         similarity = F.softmax(
-            (tokens @ self.weight.expand(bts, h, h)) @ (torch.cat([vocab, self.default_embedding.unsqueeze(0)], dim = 0 ).T).unsqueeze(0).repeat(bts, 1, 1),
+            tokens @ (torch.cat([vocab, self.default_embedding.unsqueeze(0)], dim = 0 ).T).unsqueeze(0).repeat(bts, 1, 1),
             dim=2,
         ) #B x l x D+1
         # similarity = F.softmax(
@@ -147,6 +149,66 @@ class InstructionsModel(nn.Module):
 #         attention = self.softmax(hidden @ tagged_description.transpose(1, 2))   #B x instruction_length x l
 #         instructions = attention @ tagged_description   # B x instruction_length x embedding_size
 #         return instructions, encoded
+
+class bert_instruction(nn.Module):
+    def __init__(
+        self,
+        inter_feature_dim = [512, 300]
+    )-> None:
+        super(bert_instruction, self).__init__()
+
+        inter_layer = []
+        pre_dim = 768
+        for i, dim in enumerate(inter_feature_dim):
+            inter_layer.append(nn.Linear(pre_dim, dim))
+            inter_layer.append(nn.Dropout())
+            pre_dim = dim
+        
+        self.ins_layer = nn.Sequential(*inter_layer)
+
+    def forward(
+        self,
+        text_feature
+    ):
+        return self.ins_layer(text_feature)
+        
+
+
+class bert_instructions_model(nn.Module):
+    def __init__(
+        self,
+        n_instructions: int,
+        inter_feature_dim = None
+    ) -> None:
+        super(bert_instructions_model, self).__init__()
+        self.embedding_size = 300
+        self.n_instructions = n_instructions
+        self.bert = BertModel.from_pretrained(BERT_PATH)
+        self.decoder1 = nn.RNNCell(768, 300, bias = False)
+        # Use softmax as nn.Module to allow extracting attention weights
+        self.softmax = nn.Softmax(dim=-1)
+        # self.transmation = nn.Parameter(torch.eye(self.embedding_size), requires_grad = True)# embedding_size * embedding_size
+
+
+    def forward(self, text, attention_mask, vocab):
+        outputs = self.bert(text, attention_mask)
+        language_feature = outputs.pooler_output
+        bts, h = language_feature.shape[:2]
+        instructions = []
+        hx = torch.zeros([bts, self.embedding_size], device = 'cuda')
+        # for i in range(self.n_ins):
+        #     ins = self.instructions_layer[i](outputs.pooler_output)
+        #     instructions.append(ins)
+        #     ins1 = self.instructions_layer1(language_feature)
+        for _ in range(self.n_instructions):
+            hx = self.decoder1(language_feature, hx)
+            instructions.append(hx.unsqueeze(dim = 1))
+        instructions = torch.cat(instructions, dim = 1)
+        attention = self.softmax(instructions @ vocab.unsqueeze(0).permute(0,2,1))
+        # attention = self.softmax((instructions @ self.transmation.unsqueeze(0).expand(bts, self.embedding_size, self.embedding_size) ) @ vocab.unsqueeze(0).permute(0,2,1))
+        fianl_instruction =  attention @ vocab.unsqueeze(0)
+
+        return outputs.pooler_output, fianl_instruction, attention
 
 
 class NSMCell(nn.Module):
@@ -273,23 +335,26 @@ class NSM(nn.Module):
     def __init__(self, input_size: int, num_node_properties: int, num_instructions: int, description_hidden_size: int, dropout: float = 0.0):
         super(NSM, self).__init__()
 
-        self.instructions_model = InstructionsModel(
-            input_size, num_instructions, description_hidden_size, dropout=dropout
-        )#300, 5+1, 16
+        # self.instructions_model = InstructionsModel(
+        #     input_size, num_instructions, description_hidden_size, dropout=dropout
+        # )#300, 5+1, 16
+        self.instructions_model = bert_instructions_model(num_instructions)
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.W_p = nn.Parameter(torch.eye(input_size), requires_grad = True)
         self.dropout = nn.Dropout(dropout)
     def forward(
         self,
         node_attr,
-        description,
         property_embeddings,# 1 + L +1 
         node_mask,
+        description = None,
         edge_attr = None,
         context_size = None,
         lang_mask = None,
         language_len = None,
-        concept_vocab_set = None
+        concept_vocab_set = None,
+        language = None,
+        attention_mask = None
     ):
         """
         Dimensions:
@@ -312,9 +377,11 @@ class NSM(nn.Module):
         num_property = len(property_embeddings)
         ## transform the description to instruction based on concept vocab
         ## instructions: B x instruction_length x embedding_size; encoded_questions:  B x LSTM-encoder-hidden-size
-        instructions, encoded_questions, attention, token_similarities = self.instructions_model(
-            concept_vocab_set, description, lang_mask, language_len
-        )
+        # instructions, encoded_questions, attention, token_similarities = self.instructions_model(
+        #     concept_vocab_set, description, lang_mask, language_len
+        # )
+        encoded_questions, instructions, attention = self.instructions_model(language.squeeze(1), attention_mask.squeeze(1),concept_vocab_set)
+
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)
@@ -366,7 +433,7 @@ class NSM(nn.Module):
         ins_data = torch.cat(ins_data, dim = 1)
         ins_index = torch.cat(ins_index, dim = 1)
 
-        last_instruction = instructions[:, :].unbind(1)[-1]
+        # last_instruction = instructions[:, :].unbind(1)[-1]
         ins_simi = torch.cat(ins_simi, dim = 1)
         # print("*************")
         # print(distribution[:2])
@@ -391,4 +458,4 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :20], ins_index[:, :, :20], token_similarities, attention, ins_simi
+        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :20], ins_index[:, :, :20], None, attention, ins_simi

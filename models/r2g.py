@@ -158,12 +158,12 @@ class R2G(nn.Module):
 
         # Get feature for utterance
         # language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding
-        language_embedding = batch['token_embedding'].cuda()
+        # language_embedding = batch['token_embedding'].cuda()
 
 
         # # Classify the target instance label based on the text
-        if self.language_clf is not None:
-            result['lang_logits'] = self.language_clf(lang_features)
+        # if self.language_clf is not None:
+        #     result['lang_logits'] = self.language_clf(lang_features)
 
         # set the NSM attribute
         property_embedding =  self.token_embed(torch.LongTensor(self.property_embedding).cuda()).float()
@@ -175,8 +175,8 @@ class R2G(nn.Module):
         else:
             # object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
             # function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
-            object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
-            function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            object_semantic_prob = batch['gt_class'].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
+            function_semantic_prob = batch['gt_class'].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
         color_onehot = torch.Tensor(batch['color_onehot']).cuda()   # B X N X one-hot, (B * 52 * 13)
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
         color_semantic_prob = color_onehot @ concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]]
@@ -224,13 +224,13 @@ class R2G(nn.Module):
             # edge_attr = F.softmax(batch['edge_attr'].cuda().float(), dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
             edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[9]:]
             edge_prob_logits = batch['edge_attr'].cuda().float()
-        
+
         if not self.args.language_relation_alpha > 0:
             # batch['lang_mask'][np.isinf(batch['lang_mask'])] = 1
             # batch['lang_mask'] = 1 - batch['lang_mask']
-            final_node_distribution, encoded_questions, simi, simi_index, ins_simi, ins_index, lang, attention, instruction_prop = self.nsm(node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), language_len = batch['tokens_len'], concept_vocab_set = concept_vocab_set)
+            final_node_distribution, encoded_questions, simi, simi_index, ins_simi, ins_index, lang, attention, instruction_prop = self.nsm(node_attr = node_attr, edge_attr = edge_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set)
         else:
-            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, description = language_embedding, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set)
+            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set)
             
             
         final_node_distribution_mask = final_node_distribution + batch['object_mask'].cuda()
@@ -291,7 +291,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         concept_vocab = nr3d_vocab_set
 
     # prepare the properties and concept token ids 
-    object_semantic_filtertoken = vocab.encode(object_class, add_begin_end = False)[0][:-1] # 525 object-semantic-label; -1 is the pad class
+    object_semantic_filtertoken = vocab.encode(object_class, add_begin_end = False)[0] # 525 object-semantic-label; -1 is the pad class
     # object_semantic_filter_index = [index for index, value in enumerate(object_semantic_token) if value != 3]#183
     # object_semantic_filtertoken =  [value for index, value in enumerate(object_semantic_token) if value != 3]#183
 
@@ -366,7 +366,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     language_clf = None
     if args.lang_cls_alpha > 0:
         print('Adding a text-classification loss.')
-        language_clf = text_decoder_for_clf(512, n_obj_classes)#lang_out_dim
+        language_clf = text_decoder_for_clf(768, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
 
 

@@ -66,8 +66,10 @@ if __name__ == '__main__':
         params = list(model.named_parameters())
 
         param_group = [
-            {'params':[p for n,p in params if 'nsm' in n],'lr':1e-4},
+            {'params':[p for n,p in params if 'nsm.instructions_model' in n],'lr':1e-6},
+            # {'params':[p for n,p in params if 'nsm' in n and 'nsm.instructions_model' not in n], 'lr':1e-4},
             {'params':[p for n,p in params if 'nsm' not in n ], 'lr':1e-4}
+
         ]
         return param_group
 
@@ -212,6 +214,11 @@ if __name__ == '__main__':
         train_vis = Visualizer(args.tensorboard_dir)
         logger = create_logger(args.log_dir)
         logger.info('Starting the training. Good luck!')
+        for name, param in model.named_parameters():
+            if "bert" in name:
+                param.requires_grad = False
+            if not param.requires_grad:
+                print(name)
         with tqdm.trange(start_training_epoch, args.max_train_epochs + 1, desc='epochs') as bar:
             timings = dict()
             for epoch in bar:
@@ -308,7 +315,7 @@ if __name__ == '__main__':
 
         # #prepare for 3d visual 
         references = data_loaders['test'].dataset.references
-        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020, collate_fn = collate_my)
+        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020)
         assert d_loader.dataset.references is references
         vis_res = save_predictions_for_visualization(model, d_loader, device, channel_last=True, seed=2020)
         
@@ -344,21 +351,23 @@ if __name__ == '__main__':
 
 
             ins_simi = {}
-            token_simi = {}
-            for i in range(len(vis_res[i_index]['utterance'].split())):
+            # token_simi = {}
+            # for i in range(len(vis_res[i_index]['utterance'].split())):
+            #     t = {}
+            #     for j in range(20):
+            #         t[vocabs[vis_res[i_index]['attention_index'][i][j]]] = vis_res[i_index]['attention_data'][i][j].tolist()
+            #     token_simi[vis_res[i_index]['utterance'].split()[i]] = t
+            # out['token_simi'] = token_simi
+
+            for i in range(5):
+                out_ins_attention = {}
+                # for i in range(len(vis_res[i_index]['utterance'].split())):
+                #     out_ins_attention[vis_res[i_index]['utterance'].split()[i]] = vis_res[i_index]['attention'][j][i].tolist()
                 t = {}
                 for j in range(20):
                     t[vocabs[vis_res[i_index]['attention_index'][i][j]]] = vis_res[i_index]['attention_data'][i][j].tolist()
-                token_simi[vis_res[i_index]['utterance'].split()[i]] = t
-            out['token_simi'] = token_simi
-
-            for j in range(5):
-                out_ins_attention = {}
-                for i in range(len(vis_res[i_index]['utterance'].split())):
-                    out_ins_attention[vis_res[i_index]['utterance'].split()[i]] = vis_res[i_index]['attention'][j][i].tolist()
-
-                ins_simi[str(j)+' simi'] = out_ins_attention
-                ins_simi[str(j)+' dist'] = vis_res[i_index]['instruction_prop'][j].tolist()
+                ins_simi[str(j)+' simi'] = t
+                ins_simi[str(j)+' dist'] = vis_res[i_index]['instruction_prop'][i].tolist()
 
             out['ins'] = ins_simi
 

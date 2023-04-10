@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from torch.utils.data import Dataset
 from functools import partial
@@ -10,28 +11,31 @@ from .utils import check_segmented_object_order, sample_scan_object, pad_samples
 from .utils import instance_labels_of_context, mean_rgb_unit_norm_transform, decode_stimulus_string
 from models import token_embeder
 from torch.nn.utils.rnn import pad_sequence
+from transformers import BertTokenizer
+BERT_PATH = '/home/yixuan/data/bert_pretrain/bert-base-cased'
+tokenizer = BertTokenizer.from_pretrained(BERT_PATH)
 
-def collate_my(batch_data):
-    batch_data.sort(key= lambda data: len(data['tokens']), reverse=True)
-    out = {}
-    for key in batch_data[0].keys():
-        out[key] = [x[key] for x in batch_data]
+# def collate_my(batch_data):
+#     batch_data.sort(key= lambda data: len(data['tokens']), reverse=True)
+#     out = {}
+#     for key in batch_data[0].keys():
+#         out[key] = [x[key] for x in batch_data]
 
-    for key in out.keys():
-        if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
-            out[key] = torch.stack(out[key])
-        elif key in ['lang_mask', 'tokens', 'token_embedding']:
-            out[key] = pad_sequence(out[key], batch_first=True)
-        elif key in ['context_size']:
-            out[key] = torch.Tensor(np.array(out[key])).int()
-        elif key in ['target_pos', 'class_labels']:
-            out[key] = torch.LongTensor(np.array(out[key]))
-        elif key in ['utterance', 'stimulus_id', 'scan_id']:
-            continue
-        else:
-            out[key] = torch.Tensor(np.array(out[key]))
+#     for key in out.keys():
+#         if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
+#             out[key] = torch.stack(out[key])
+#         elif key in ['lang_mask', 'tokens', 'token_embedding']:
+#             out[key] = pad_sequence(out[key], batch_first=True)
+#         elif key in ['context_size']:
+#             out[key] = torch.Tensor(np.array(out[key])).int()
+#         elif key in ['target_pos', 'class_labels']:
+#             out[key] = torch.LongTensor(np.array(out[key]))
+#         elif key in ['utterance', 'stimulus_id', 'scan_id']:
+#             continue
+#         else:
+#             out[key] = torch.Tensor(np.array(out[key]))
 
-    return out
+#     return out
 
 class ListeningDataset(Dataset):
     def __init__(self, references, scans, vocab, max_seq_len, points_per_object, max_distractors,
@@ -72,9 +76,8 @@ class ListeningDataset(Dataset):
         tokens_filterd, tokens_filterd_mask =  self.vocab.encode(raw_token_filtered, None, add_begin_end=False)
         tokens = np.array(tokens, dtype=np.long)
 
-        lang_mask = np.array(lang_mask)
-        tokens_filterd = np.array(tokens_filterd, dtype=np.long)
-        tokens_filterd_mask = np.array(tokens_filterd_mask)
+        text = tokenizer(ref['utterance'], padding='max_length', max_length = self.max_seq_len, truncation=True, return_tensors="pt")
+
         is_nr3d = ref['dataset'] == 'nr3d'
 
         anchors_id = None
@@ -89,7 +92,7 @@ class ListeningDataset(Dataset):
             sr_type = ref['reference_type']
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type
+        return scan, target, is_nr3d, anchor, sr_type, text
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -134,7 +137,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type = self.get_reference_data(index)
+        scan, target, is_nr3d, anchor, sr_type, text = self.get_reference_data(index)
         # Make a context of distractors
         context = self.prepare_distractors(scan, target, anchor)
 
@@ -168,7 +171,9 @@ class ListeningDataset(Dataset):
         res['scene_center'], res['scene_size'] = scan.get_center_size()
         res['scene_center'] = np.array(res['scene_center'])
         res['scene_size'] = np.array(res['scene_size'])
-
+        res['input_ids'] = text['input_ids']
+        res['token_type_ids'] = text['token_type_ids']
+        res['attention_mask'] = text['attention_mask']
         
 
         # take care of padding, so that a batch has same number of N-objects across scans.
@@ -199,7 +204,7 @@ class ListeningDataset(Dataset):
         res['color_token'] = color_t_tmp
         res['obj_size'] = size_tmp
         res['obj_position'] = position_tmp
-        res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
+        # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
         
@@ -299,8 +304,8 @@ class ListeningDataset(Dataset):
             
             res['sr_type'] = sr
 
-        res['lang_mask'] = torch.Tensor(lang_mask)
-        res['tokens_len'] = tokens_len
+        # res['lang_mask'] = torch.Tensor(lang_mask)
+        # res['tokens_len'] = tokens_len
         
         if anchor_pos is not None:
             res['anchors_pos'] = anchor_pos
@@ -320,7 +325,7 @@ class ListeningDataset(Dataset):
         
         res['target_pos'] = target_pos
         res['target_class_mask'] = target_class_mask
-        res['tokens'] = torch.Tensor(tokens)
+        # res['tokens'] = torch.Tensor(tokens)
         res['is_nr3d'] = is_nr3d
 
         if self.visualization:
@@ -395,6 +400,6 @@ def make_data_loaders(args, referit_data, vocab, class_to_idx, scans, mean_rgb):
         if split == 'test':
             seed = args.random_seed
 
-        data_loaders[split] = dataset_to_dataloader(dataset, split, args.batch_size, n_workers, seed=seed, collate_fn = collate_my)
+        data_loaders[split] = dataset_to_dataloader(dataset, split, args.batch_size, n_workers, seed=seed)
 
     return data_loaders

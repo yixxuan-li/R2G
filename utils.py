@@ -173,7 +173,7 @@ def create_logger(log_dir, std_out=True):
 
 def make_batch_keys(args, extras=None):
     """depending on the args, different data are used by the listener."""
-    batch_keys = ['objects', 'tokens', 'target_pos', 'tb_attr', 'mc_attr']  # all models use these
+    batch_keys = ['objects', 'target_pos', 'tb_attr', 'mc_attr', 'input_ids', 'token_type_ids', 'attention_mask']  # all models use these
     # batch_keys = ['objects', 'tokens', 'target_pos', 'lang_mask', 'color_feature', 'size_feature', 'position_features', 'color_token', 'object_mask']  # cause segmentation fault 
     if extras is not None:
         batch_keys += extras
@@ -516,7 +516,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
     Return the predictions along with the scan data for further visualization
     """
     # batch_keys = ['objects', 'tokens', 'class_labels', 'target_pos', 'scan', 'bboxes']
-    batch_keys = ['objects', 'tokens', 'class_labels', 'target_pos', 'tb_attr', 'mc_attr']#model origin return 
+    batch_keys = ['objects', 'target_pos', 'tb_attr', 'mc_attr', 'input_ids', 'token_type_ids', 'attention_mask']#model origin return 
 
     # Set the model in eval mode
     model.eval()
@@ -545,7 +545,8 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
         batch_size = batch['target_pos'].size(0)
         for i in range(batch_size):
             # print(res['simi'][i, :].shape, res['ins_simi'][i, :].shape)
-            adata, aindex = torch.sort(res['token'][i], dim = -1, descending = True) 
+            # adata, aindex = torch.sort(res['token'][i], dim = -1, descending = True) 
+            adata, aindex = torch.sort(res['attention'][i], dim = -1, descending = True) 
             # print(adata.shape, aindex.shape)
             res_list.append({
                 'scan_id': batch['scan_id'][i],
