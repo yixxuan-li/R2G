@@ -320,7 +320,7 @@ def compute_losses(batch, res, criterion_dict, args):
 
     if args.lang_cls_alpha > 0:
         criterion = criterion_dict['lang_logits']
-        lang_clf_loss = criterion(res['lang_logits'], batch['target_class'])
+        lang_clf_loss = criterion(res['lang_logits'], batch['target_class'].long())
         total_loss += lang_clf_loss * args.lang_cls_alpha
 
     if args.instruction_cls_alpha > 0:
