@@ -7,7 +7,7 @@ import numpy as np
 
 from . import MLP
 from . import NSM, Relation_Estimate, SR_Retrieval, Attr_Estimate, Attr_Compute
-from .modules.default_blocks import single_object_encoder, token_encoder, token_embeder, object_decoder_for_clf, text_decoder_for_clf, object_lang_clf
+from .modules.default_blocks import single_object_encoder, token_encoder, token_embeder, object_decoder_for_clf, text_decoder_for_clf, object_lang_clf, bert_clf
 from .modules.utils import get_siamese_features
 from datasets.vocabulary import Vocabulary
 
@@ -66,7 +66,8 @@ class R2G(nn.Module):
                  language_encoder = None,
                  concept_vocab_seg = None,
                  num_node_properties = None,
-                 concept_vocab_set = None):
+                 concept_vocab_set = None
+                 ):
         """
         Parameters have same meaning as in Base3DListener.
 
@@ -117,7 +118,6 @@ class R2G(nn.Module):
                 self.mode = 'sr3d'
             elif 'nr3d' in args.referit3D_file:
                 self.mode = 'nr3d'
-
         # ## NSM 
         if args.language_relation_alpha + args.lang_cls_alpha + args.instruction_cls_alpha > 0:    
             # if args.language_relation_alpha == 0:
@@ -129,7 +129,8 @@ class R2G(nn.Module):
             self.nsm = NSM(input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 5, 
-                            description_hidden_size = 512
+                            description_hidden_size = 512,
+                            vocab_len = len(concept_vocab_set)
                             # language_clf = language_clf,
                             # lang_relation_classify = language_relation_clf,
                             # instruction_clf = instruction_clf
@@ -139,6 +140,7 @@ class R2G(nn.Module):
                             num_node_properties = num_node_properties, 
                             num_instructions = 5, 
                             description_hidden_size = 512,
+                            vocab_len = len(concept_vocab_set)
                             )
 
 

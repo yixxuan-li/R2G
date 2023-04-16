@@ -366,8 +366,8 @@ if __name__ == '__main__':
                 t = {}
                 for j in range(20):
                     t[vocabs[vis_res[i_index]['attention_index'][i][j]]] = vis_res[i_index]['attention_data'][i][j].tolist()
-                ins_simi[str(j)+' simi'] = t
-                ins_simi[str(j)+' dist'] = vis_res[i_index]['instruction_prop'][i].tolist()
+                ins_simi[str(i)+' simi'] = t
+                ins_simi[str(i)+' dist'] = vis_res[i_index]['instruction_prop'][i].tolist()
 
             out['ins'] = ins_simi
 
@@ -403,7 +403,7 @@ if __name__ == '__main__':
 
             for i in range(5):
                 ins1= {}
-                for j in range(20):
+                for j in range(50):
                     ins1[vocabs[vis_res[i_index]['ins_simi_index'][i, j]]] = vis_res[i_index]['ins_simi'][i, j].tolist()
                 ins_simi[i] = ins1
                 # if object_class2[vis_res[i_index]['ins_simi_index'][0, j]] not in ins1.keys():

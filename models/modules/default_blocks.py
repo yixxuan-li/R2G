@@ -137,6 +137,20 @@ def object_decoder_for_clf(object_latent_dim: int, n_classes: int) -> MLP:
     return MLP(object_latent_dim, [128, 256, n_classes], dropout_rate=0.15)
 
 
+
+#
+# Bert Decoder
+#
+def bert_clf(object_latent_dim: int, n_classes: int) -> MLP:
+    """
+    The default classification head for the fine-grained object classification.
+
+    @param object_latent_dim: The dimension of each encoded object feature
+    @param n_classes: The number of the fine-grained instance classes
+    """
+    return MLP(object_latent_dim, [128, 256, n_classes], dropout_rate=0.15)
+
+
 #
 #  Text Decoder
 #

@@ -6,6 +6,7 @@ from transformers import BertModel
 import numpy as np
 
 from .utils import get_siamese_features
+from .default_blocks import bert_clf
 
 BERT_PATH = '/home/yixuan/data/bert_pretrain/bert-base-cased'
 
@@ -178,7 +179,8 @@ class bert_instructions_model(nn.Module):
     def __init__(
         self,
         n_instructions: int,
-        inter_feature_dim = None
+        inter_feature_dim = None,
+        vocab_len = None
     ) -> None:
         super(bert_instructions_model, self).__init__()
         self.embedding_size = 300
@@ -187,6 +189,7 @@ class bert_instructions_model(nn.Module):
         self.decoder1 = nn.RNNCell(768, 300, bias = False)
         # Use softmax as nn.Module to allow extracting attention weights
         self.softmax = nn.Softmax(dim=-1)
+        self.bert_decoder = bert_clf(300, vocab_len)
         # self.transmation = nn.Parameter(torch.eye(self.embedding_size), requires_grad = True)# embedding_size * embedding_size
 
 
@@ -204,11 +207,12 @@ class bert_instructions_model(nn.Module):
             hx = self.decoder1(language_feature, hx)
             instructions.append(hx.unsqueeze(dim = 1))
         instructions = torch.cat(instructions, dim = 1)
-        attention = self.softmax(instructions @ vocab.unsqueeze(0).permute(0,2,1))
-        # attention = self.softmax((instructions @ self.transmation.unsqueeze(0).expand(bts, self.embedding_size, self.embedding_size) ) @ vocab.unsqueeze(0).permute(0,2,1))
-        fianl_instruction =  attention @ vocab.unsqueeze(0)
+        att_instructions = F.softmax(get_siamese_features(self.bert_decoder, instructions, torch.stack), dim = -1)
+        # attention = self.softmax(instructions @ vocab.unsqueeze(0).permute(0,2,1))
+        # # attention = self.softmax((instructions @ self.transmation.unsqueeze(0).expand(bts, self.embedding_size, self.embedding_size) ) @ vocab.unsqueeze(0).permute(0,2,1))
+        fianl_instruction =  att_instructions @ vocab.unsqueeze(0)
 
-        return outputs.pooler_output, fianl_instruction, attention
+        return outputs.pooler_output, fianl_instruction, att_instructions
 
 
 class NSMCell(nn.Module):
@@ -332,13 +336,13 @@ class NSMCell(nn.Module):
 
 ## NSM 
 class NSM(nn.Module):
-    def __init__(self, input_size: int, num_node_properties: int, num_instructions: int, description_hidden_size: int, dropout: float = 0.0):
+    def __init__(self, input_size: int, num_node_properties: int, num_instructions: int, description_hidden_size: int, vocab_len: int, dropout: float = 0.0):
         super(NSM, self).__init__()
 
         # self.instructions_model = InstructionsModel(
         #     input_size, num_instructions, description_hidden_size, dropout=dropout
         # )#300, 5+1, 16
-        self.instructions_model = bert_instructions_model(num_instructions)
+        self.instructions_model = bert_instructions_model(num_instructions, vocab_len = vocab_len)
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.W_p = nn.Parameter(torch.eye(input_size), requires_grad = True)
         self.dropout = nn.Dropout(dropout)
@@ -430,7 +434,7 @@ class NSM(nn.Module):
             ins_index.append(iindex.unsqueeze(1))
 
 
-        ins_data = torch.cat(ins_data, dim = 1)
+        ins_data = F.softmax(torch.cat(ins_data, dim = 1), dim =-1)
         ins_index = torch.cat(ins_index, dim = 1)
 
         # last_instruction = instructions[:, :].unbind(1)[-1]
@@ -458,4 +462,4 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :20], ins_index[:, :, :20], None, attention, ins_simi
+        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :50], ins_index[:, :, :50], None, attention, ins_simi
