@@ -194,9 +194,9 @@ class bert_instructions_model(nn.Module):
 
 
     def forward(self, text, attention_mask, vocab):
-        outputs = self.bert(text, attention_mask)
-        language_feature = outputs.pooler_output
-        bts, h = language_feature.shape[:2]
+        outputs = self.bert(text, attention_mask, output_hidden_states=True)
+        language_feature = torch.mean(outputs.last_hidden_state, dim = 1).squeeze(1)
+        bts, h = language_feature.shape
         instructions = []
         hx = torch.zeros([bts, self.embedding_size], device = 'cuda')
         # for i in range(self.n_ins):
@@ -439,7 +439,6 @@ class NSM(nn.Module):
 
         # last_instruction = instructions[:, :].unbind(1)[-1]
         ins_simi = torch.cat(ins_simi, dim = 1)
-        # print("*************")
         # print(distribution[:2])
         # arrge = node_attr.view(batch_size, num_node, -1)
     
@@ -462,4 +461,4 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :50], ins_index[:, :, :50], None, attention, ins_simi
+        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :100], ins_index[:, :, :100], None, attention, ins_simi

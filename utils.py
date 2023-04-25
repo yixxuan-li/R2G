@@ -541,12 +541,13 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
 
         # Forward Pass
         res = model(batch)
-
+        print("8***************")
         batch_size = batch['target_pos'].size(0)
         for i in range(batch_size):
             # print(res['simi'][i, :].shape, res['ins_simi'][i, :].shape)
             # adata, aindex = torch.sort(res['token'][i], dim = -1, descending = True) 
             adata, aindex = torch.sort(res['attention'][i], dim = -1, descending = True) 
+            print(adata[0, aindex[0, :9]])
             # print(adata.shape, aindex.shape)
             res_list.append({
                 'scan_id': batch['scan_id'][i],
