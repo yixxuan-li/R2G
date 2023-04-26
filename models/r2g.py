@@ -62,7 +62,7 @@ class R2G(nn.Module):
                  concept_vocab = None,
                  relation_num = None,
                  object_semantic_filter_index = None,
-                 language_relation_clf = None,
+                 relation_clf = None,
                  language_encoder = None,
                  concept_vocab_seg = None,
                  num_node_properties = None,
@@ -99,7 +99,7 @@ class R2G(nn.Module):
 
         # Classifier heads
         self.object_clf = object_clf
-        self.language_clf = language_clf
+        # self.language_clf = language_clf
         # self.instruction_clf = instruction_clf
         
         # self.obj_ref = object_language_clf
@@ -120,25 +120,25 @@ class R2G(nn.Module):
                 self.mode = 'nr3d'
         # ## NSM 
         if args.language_relation_alpha + args.lang_cls_alpha + args.instruction_cls_alpha > 0:    
-            # if args.language_relation_alpha == 0:
-            #     language_relation_clf = None
-            # if args.lang_cls_alpha == 0:
-            #     language_clf = None
+            if args.language_relation_alpha == 0:
+                relation_clf = None
+            if args.lang_cls_alpha == 0:
+                language_clf = None
             if args.instruction_cls_alpha == 0:
                 instruction_clf = None
             self.nsm = NSM(input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 5, 
+                            num_instructions = 3, 
                             description_hidden_size = 512,
-                            vocab_len = len(concept_vocab_set)
-                            # language_clf = language_clf,
-                            # lang_relation_classify = language_relation_clf,
-                            # instruction_clf = instruction_clf
+                            vocab_len = len(concept_vocab_set),
+                            language_clf = language_clf,
+                            relation_clf = relation_clf,
+                            instruction_clf = instruction_clf
                             )
         else:
             self.nsm = NSM(input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 5, 
+                            num_instructions = 3, 
                             description_hidden_size = 512,
                             vocab_len = len(concept_vocab_set)
                             )
@@ -230,9 +230,9 @@ class R2G(nn.Module):
         if not self.args.language_relation_alpha > 0:
             # batch['lang_mask'][np.isinf(batch['lang_mask'])] = 1
             # batch['lang_mask'] = 1 - batch['lang_mask']
-            final_node_distribution, encoded_questions, simi, simi_index, ins_simi, ins_index, lang, attention, instruction_prop = self.nsm(node_attr = node_attr, edge_attr = edge_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set)
+            final_node_distribution, encoded_questions, anchor_logits, relation_logits, target_logits, simi, simi_index, ins_simi, ins_index, lang, attention, instruction_prop = self.nsm(node_attr = node_attr, edge_attr = edge_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set, concept_vocab_seg = self.concept_vocab_seg, concept_vocab = concept_vocab)
         else:
-            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set)
+            final_node_distribution, encoded_questions, anchor_logits, relation_logits, target_logits, simi, simi_index, ins_simi, ins_index, lang, attention, instruction_prop = self.nsm(node_attr = node_attr, edge_attr = edge_attr, language = batch['input_ids'], attention_mask = batch['attention_mask'], property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), concept_vocab_set = concept_vocab_set, concept_vocab_seg = self.concept_vocab_seg, concept_vocab = concept_vocab)
             
             
         final_node_distribution_mask = final_node_distribution + batch['object_mask'].cuda()
@@ -241,12 +241,12 @@ class R2G(nn.Module):
         # print(batch['object_mask'][:2])
         result['obj_attr'] = obj_attr
         if self.args.language_relation_alpha > 0:
-            result['lang_relation_logits'] = lang_relation_logits
+            result['relation_logits'] = relation_logits
 
         # Classify the target instance label based on the text
         if self.args.lang_cls_alpha > 0:
-            result['lang_logits'] = self.language_clf(encoded_questions)
-            # result['lang_logits'] = target_logits
+            # result['lang_logits'] = self.language_clf(encoded_questions)
+            result['lang_logits'] = target_logits
 
         if self.args.instruction_cls_alpha > 0:
             # result['instruction_logits'] = self.instruction_clf(all_instruction[0])
@@ -368,7 +368,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     language_clf = None
     if args.lang_cls_alpha > 0:
         print('Adding a text-classification loss.')
-        language_clf = text_decoder_for_clf(768, n_obj_classes)#lang_out_dim
+        language_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
 
 
@@ -378,9 +378,9 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         instruction_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
         
-    language_relation_clf = None
+    relation_clf = None
     if args.language_relation_alpha > 0:
-        language_relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
+        relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
     
 
     # # make a language encoder
@@ -411,7 +411,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         concept_vocab_set = concept_vocab_set,
         relation_num = len(relation_semantic),
         # object_semantic_filter_index = object_semantic_filter_index,
-        language_relation_clf = language_relation_clf,
+        relation_clf = relation_clf,
         concept_vocab_seg = concept_vocab_seg,
         num_node_properties = len(property_semantic) -1)
 
