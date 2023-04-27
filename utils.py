@@ -269,7 +269,7 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
         
         if args.language_relation_alpha > 0:
-            batch_guess = torch.argmax(res['lang_relation_logits'], -1)
+            batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             lang_relation_acc_mtr.update(cls_b_acc, batch_size)
             lang_relation_loss_mtr.update(all_losses['lang_rela_loss'].item(), batch_size)            
@@ -283,8 +283,8 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     metrics['train_txt_cls_acc'] = txt_acc_mtr.avg
     metrics['train_instr_cls_acc'] = instr_acc_mtr.avg
     metrics['train_instr_loss'] = instr_loss_mtr.avg
-    metrics['train_lang_relation_loss'] = lang_relation_loss_mtr.avg
-    metrics['train_lang_realtion_acc'] = lang_relation_acc_mtr.avg
+    metrics['train_relation_loss'] = lang_relation_loss_mtr.avg
+    metrics['train_relation_acc'] = lang_relation_acc_mtr.avg
 
     return metrics
 
@@ -320,18 +320,18 @@ def compute_losses(batch, res, criterion_dict, args):
 
     if args.lang_cls_alpha > 0:
         criterion = criterion_dict['lang_logits']
-        lang_clf_loss = criterion(res['lang_logits'], batch['target_class'].long())
+        lang_clf_loss = criterion(res['lang_logits'], batch['target_class'].long().cuda())
         total_loss += lang_clf_loss * args.lang_cls_alpha
 
     if args.instruction_cls_alpha > 0:
         criterion = criterion_dict['instruction_logits']
-        instruction_clf_loss = criterion(res['instruction_logits'], batch['anchor_class'].cuda())
+        instruction_clf_loss = criterion(res['instruction_logits'], batch['anchor_class'].long().cuda())
         total_loss += instruction_clf_loss * args.lang_cls_alpha
 
         
     if args.language_relation_alpha > 0:
         criterion = criterion_dict['self_language_relation_logits']
-        lang_rela_loss = criterion(res['lang_relation_logits'], batch['sr_type'].long().cuda())
+        lang_rela_loss = criterion(res['relation_logits'], batch['sr_type'].long().cuda())
         total_loss += lang_rela_loss * args.language_relation_alpha
         
     return {'total_loss': total_loss, 'referential_loss': referential_loss,
@@ -410,7 +410,7 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
 
 
         if args.language_relation_alpha > 0:
-            batch_guess = torch.argmax(res['lang_relation_logits'], -1)
+            batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             lang_relation_acc_mtr.update(cls_b_acc, batch_size)
             lang_relation_loss_mtr.update(all_losses['lang_rela_loss'].item(), batch_size)     

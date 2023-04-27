@@ -179,9 +179,10 @@ class NSMCell(nn.Module):
         edge_attr,
         instruction,
         distribution,
-        node_prop_similarities,
-        relation_prop_similarity,
-        node_mask = None
+        node_prop_similarities = None,
+        relation_prop_similarity = None,
+        node_mask = None,
+        ins_index = None
     ):
         """
         Dimensions:
@@ -202,38 +203,42 @@ class NSMCell(nn.Module):
 
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
-        # B x N x H
-        node_scores = self.dropout(
-            self.nonlinearity(
-                torch.sum(
-                    # B x P x 1 x 1
-                    node_prop_similarities.view(batch_size, -1, 1, 1).expand(batch_size, num_node_properties, num_node, dim)
-                    # B x 1 x 1 x H
-                    * (instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-                    # B x P x N x H
-                    * (node_attr.transpose(1, 2)
-                    # P x H x H -> 1 x P x H x H -> B x P x H x H
-                    @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim))),
-                    dim=1,
-                )# B x P x N x H -> B x N x H 
+        if ins_index != 1:
+            # B x N x H
+            node_scores = self.dropout(
+                self.nonlinearity(
+                    torch.sum(
+                        # # B x P x 1 x 1
+                        # node_prop_similarities.view(batch_size, -1, 1, 1).expand(batch_size, num_node_properties, num_node, dim)
+                        # # B x 1 x 1 x H
+                        (instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
+                        # B x P x N x H
+                        * (node_attr.transpose(1, 2)
+                        # P x H x H -> 1 x P x H x H -> B x P x H x H
+                        @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim))),
+                        dim=1,
+                    )# B x P x N x H -> B x N x H 
+                )
             )
-        )
 
-        # E x H
-        edge_scores = self.dropout(
-            self.nonlinearity(
-                (# B x 1 x H
-                instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
-                # B x (N x N) x H
-                * (edge_attr.view(batch_size, num_node*num_node, -1)
-                # H x H -> B x H x H
-                @ self.weight_edge.unsqueeze(0).expand(batch_size, dim, dim))).view(batch_size, num_node, num_node, -1)
-            )# B x N x N x H
-        )
+        if ins_index == 1:
+            # E x H
+            edge_scores = self.dropout(
+                self.nonlinearity(
+                    (# B x 1 x H
+                    instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
+                    # B x (N x N) x H
+                    * (edge_attr.view(batch_size, num_node*num_node, -1)
+                    # H x H -> B x H x H
+                    @ self.weight_edge.unsqueeze(0).expand(batch_size, dim, dim))).view(batch_size, num_node, num_node, -1)
+                )# B x N x N x H
+            )
         # shift the attention to their most relavant neibors; B x N x H -> B x N
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
-        next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1).expand(batch_size, dim, 1)).squeeze(2) + node_mask, dim =1)
-
+        if ins_index == 0:
+            next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1).expand(batch_size, dim, 1)).squeeze(2) * node_mask, dim =1)
+        if ins_index == 2:
+            next_distribution_states = (node_scores @ (self.weight_state_score).view(1, -1, 1).expand(batch_size, dim, 1)).squeeze(2) * node_mask
         # shift the attention to their most relavant edges;  B x N
         # next_distribution_relations = F.softmax(
         #     self.weighten_edge(
@@ -244,13 +249,14 @@ class NSMCell(nn.Module):
         #     dim = 1 
         # )
         
-        next_distribution_relations = F.softmax(
-            (torch.sum(
-                    edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
-                ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
-            ).squeeze(2) + node_mask,# B x N
-            dim = 1 
-        )
+        if ins_index == 1:
+            next_distribution_relations = F.softmax(
+                (torch.sum(
+                        edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
+                    ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
+                ).squeeze(2) + node_mask,# B x N
+                dim = 1 
+            )
         # Compute next distribution
         # B x N
         # next_distribution = F.softmax(
@@ -259,9 +265,17 @@ class NSMCell(nn.Module):
         #     * next_distribution_states),  #(B x N)
         #     dim = 1
         # )
-        next_distribution = (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
-            + (1 - relation_prop_similarity).view(batch_size, 1)
-            * next_distribution_states)  #(B x N)
+        # next_distribution = (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
+        #     + (1 - relation_prop_similarity).view(batch_size, 1)
+        #     * next_distribution_states)  #(B x N)
+        if ins_index %2 == 0:
+            next_distribution = next_distribution_states  #(B x N)
+            # next_distribution = next_distribution * distribution
+        elif ins_index %2 != 0:
+            next_distribution = next_distribution_relations#(B X N)
+
+        if ins_index == 2:
+            next_distribution = next_distribution * distribution
         return next_distribution
 
 
@@ -270,7 +284,18 @@ class NSMCell(nn.Module):
 
 ## NSM 
 class NSM(nn.Module):
-    def __init__(self, input_size: int, num_node_properties: int, num_instructions: int, description_hidden_size: int, dropout: float = 0.0):
+    def __init__(
+        self,
+        input_size: int,
+        num_node_properties: int,
+        num_instructions: int,
+        description_hidden_size: int,
+        vocab_len: int,
+        dropout: float = 0.0,
+        relation_clf = None,
+        language_clf = None,
+        instruction_clf = None
+    ): 
         super(NSM, self).__init__()
 
         self.instructions_model = InstructionsModel(
@@ -279,17 +304,24 @@ class NSM(nn.Module):
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.W_p = nn.Parameter(torch.eye(input_size), requires_grad = True)
         self.dropout = nn.Dropout(dropout)
+        self.relation_clf = relation_clf
+        self.target_clf = language_clf
+        self.anchor_clf = instruction_clf
     def forward(
         self,
         node_attr,
-        description,
         property_embeddings,# 1 + L +1 
         node_mask,
+        description = None,
         edge_attr = None,
         context_size = None,
         lang_mask = None,
         language_len = None,
-        concept_vocab_set = None
+        concept_vocab_set = None,
+        language = None,
+        attention_mask = None,
+        concept_vocab = None,
+        concept_vocab_seg = None
     ):
         """
         Dimensions:
@@ -316,6 +348,27 @@ class NSM(nn.Module):
             concept_vocab_set, description, lang_mask, language_len
         )
 
+        ## constrain the 3 instructions
+        anchor_logits = None
+        anchor_instruction = None
+        if self.anchor_clf is not None:
+            anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
+            anchor_instruction = anchor_logits @ concept_vocab[:concept_vocab_seg[0]-1]
+
+        relation_logits = None
+        relation_instruction = None
+        if self.relation_clf is not None:
+            relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
+            # generate new instruction based on relation predicted
+            #                   B x n_relations        n_relations x hidden_dim -> B x  hidden_dim
+            relation_instruction = relation_logits @ concept_vocab[concept_vocab_seg[-2]:]        
+
+        target_logits = None
+        target_instruction = None
+        if self.target_clf is not None:
+            target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
+            target_instruction = target_logits @ concept_vocab[:concept_vocab_seg[0]-1]
+
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)
         # edge_attr=self.dropout(edge_attr)
@@ -323,8 +376,9 @@ class NSM(nn.Module):
         # Initialize distribution over the nodes, size: batch_size x num_node: num of node
         # distribution = F.softmax(torch.rand(batch_size, num_node), dim =1).cuda()
         distribution = torch.ones(batch_size, num_node).cuda() * (1 / context_size).unsqueeze(1)
-        # node_mask = 1 - torch.where(torch.isinf(node_mask), torch.full_like(node_mask, 1), node_mask)# B x N
-        distribution = F.softmax(distribution + node_mask, dim = -1)
+        node_mask = 1 - torch.where(torch.isinf(node_mask), torch.full_like(node_mask, 1), node_mask)# B x N
+        # distribution = F.softmax(distribution + node_mask, dim = -1)
+        distribution = distribution * node_mask
         prob = distribution.unsqueeze(1)
         ins_simi = []
         simi = node_attr[:, :, 0, :].squeeze(2) @ concept_vocab_set.T#B x N x P x H  @ (C x H ).T-> B x N x C
@@ -334,16 +388,22 @@ class NSM(nn.Module):
         ins_index = []
 
         # # Simulate execution of finite automaton
-        for instruction in instructions[:, :].unbind(1):        # B x embedding_size
+        for ins_id in range(3):        # B x embedding_size
+            instruction = instructions[:, :].unbind(1)[ins_id]
             # calculate intructions' property similarities(both node and relation)
             # instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
-            instruction_prop = F.softmax(instruction @ (property_embeddings @ self.W_p).transpose(0,1), dim=1)  # B x D(L+2)
-            ins_simi.append(instruction_prop.unsqueeze(1))
-            # print("---------------")
-            # print(instruction_prop[:3])
-            # print("---------------")
-            node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
-            relation_prop_similarity = instruction_prop[:, -1]   # B 
+            # instruction_prop = F.softmax(instruction @ (property_embeddings @ self.W_p).transpose(0,1), dim=1)  # B x D(L+2)
+            # ins_simi.append(instruction_prop.unsqueeze(1))
+            # node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
+            # relation_prop_similarity = instruction_prop[:, -1]   # B 
+
+            if ins_id == 0 and anchor_instruction is not None:
+                instruction = anchor_instruction
+            if ins_id == 1 and relation_instruction is not None:
+                instruction = relation_instruction
+            if ins_id == 2 and target_instruction is not None:
+                instruction = target_instruction
+                t_distribution = distribution
             # distribution = F.softmax(distribution, dim = -1)
             # update the distribution: B xN
             distribution = self.nsm_cell(
@@ -351,9 +411,8 @@ class NSM(nn.Module):
                 edge_attr,
                 instruction,
                 distribution,
-                node_prop_similarities,
-                relation_prop_similarity,
-                node_mask = node_mask
+                node_mask = node_mask,
+                ins_index = ins_id
             )
             prob = torch.cat([prob, distribution.unsqueeze(1)], dim =1)
 
@@ -363,12 +422,11 @@ class NSM(nn.Module):
             ins_index.append(iindex.unsqueeze(1))
 
 
-        ins_data = torch.cat(ins_data, dim = 1)
+        ins_data = F.softmax(torch.cat(ins_data, dim = 1), dim =-1)
         ins_index = torch.cat(ins_index, dim = 1)
 
-        last_instruction = instructions[:, :].unbind(1)[-1]
-        ins_simi = torch.cat(ins_simi, dim = 1)
-        # print("*************")
+        # last_instruction = instructions[:, :].unbind(1)[-1]
+        # ins_simi = torch.cat(ins_simi, dim = 1)
         # print(distribution[:2])
         # arrge = node_attr.view(batch_size, num_node, -1)
     
@@ -391,4 +449,4 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, data[:,:, :20], index[:,:, :20], ins_data[:, :, :20], ins_index[:, :, :20], token_similarities, attention, ins_simi
+        return distribution, encoded_questions, anchor_logits, relation_logits, target_logits,  data[:,:, :20], index[:,:, :20], ins_data[:, :, :100], ins_index[:, :, :100], None, attention, None
