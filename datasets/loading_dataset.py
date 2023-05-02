@@ -313,7 +313,7 @@ class ListeningDataset(Dataset):
         res['target_class'] = self.class_to_idx[target.instance_label]
         if anchor is not None:
             res['anchor_class'] = self.class_to_idx[anchor.instance_label]
-        res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
+        res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)-1])
         for i in range(res['context_size']):
             res['gt_class'][i, res['class_labels'][i]] = 1
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 import torch
 import tqdm
 import time
@@ -151,19 +150,19 @@ if __name__ == '__main__':
         # print('-->name:', name, '-->grad_requirs:', parms.requires_grad, '--weight', torch.mean(parms.data), ' -->grad_value:', torch.mean(parms.grad))
 
 
-    if args.resume_path:
-        group_parameters = get_group_parameters(model)
-        optimizer = optim.Adam(group_parameters, lr=args.init_lr)
-        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
-                                                                patience=5, verbose=True)        
-    else:
-        # optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
+    # if args.resume_path:
+    #     group_parameters = get_group_parameters(model)
+    #     optimizer = optim.Adam(group_parameters, lr=args.init_lr)
+    #     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
+    #                                                             patience=5, verbose=True)        
+    # else:
+    optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
+                                                            patience=5, verbose=True)
+        # group_parameters = get_group_parameters(model)
+        # optimizer = optim.Adam(group_parameters, lr=args.init_lr)
         # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
-                                                                # patience=5, verbose=True)
-        group_parameters = get_group_parameters(model)
-        optimizer = optim.Adam(group_parameters, lr=args.init_lr)
-        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
-                                                                        patience=5, verbose=True)  
+        #                                                                 patience=5, verbose=True)  
 
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
     # optimizer = optim.SGD(model.parameters(), lr=args.init_lr)
@@ -271,11 +270,11 @@ if __name__ == '__main__':
 
     elif args.mode == 'evaluate':
 
-        # meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
-        # print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
-        # print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
-        # print('Text-Clf-Accuracy {:.4f}:'.format(meters['test_txt_cls_acc']))
-        # exit(0)
+        meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
+        print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
+        print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
+        print('Text-Clf-Accuracy {:.4f}:'.format(meters['test_txt_cls_acc']))
+        exit(0)
 
         # out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
         # res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
@@ -329,38 +328,38 @@ if __name__ == '__main__':
             scan = data_loaders['test'].dataset.scans[vis_res[i_index]['scan_id']]
             ppos = vis_res[i_index]['predicted_target_pos']
             pos = vis_res[i_index]['target_pos']
-            edge = vis_res[i_index]['edge_prob']
+            # edge = vis_res[i_index]['edge_prob']
 
-            out['scene_size'] = vis_res[i_index]['scene_size'].tolist()
-            out['scene_center'] = vis_res[i_index]['scene_center'].tolist()
+            # out['scene_size'] = vis_res[i_index]['scene_size'].tolist()
+            # out['scene_center'] = vis_res[i_index]['scene_center'].tolist()
             edges = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
-            edge = {}
-            for i, _edge in enumerate(edges):
-                edge[_edge] = vis_res[i_index]['edge_prob'][ppos, pos][i].tolist()
+            # edge = {}
+            # for i, _edge in enumerate(edges):
+            #     edge[_edge] = vis_res[i_index]['edge_prob'][ppos, pos][i].tolist()
 
-            out['edge'] = edge
+            # out['edge'] = edge
             # if np.sum(vis_res[i_index]['edge_prob'][ppos, pos]) <= 1:
             #     continue
 
 
-            ins_simi = {}
-            token_simi = {}
-            for i in range(len(vis_res[i_index]['utterance'].split())):
-                t = {}
-                for j in range(20):
-                    t[vocabs[vis_res[i_index]['attention_index'][i][j]]] = vis_res[i_index]['attention_data'][i][j].tolist()
-                token_simi[vis_res[i_index]['utterance'].split()[i]] = t
-            out['token_simi'] = token_simi
+            # ins_simi = {}
+            # token_simi = {}
+            # for i in range(len(vis_res[i_index]['utterance'].split())):
+            #     t = {}
+            #     for j in range(20):
+            #         t[vocabs[vis_res[i_index]['attention_index'][i][j]]] = vis_res[i_index]['attention_data'][i][j].tolist()
+            #     token_simi[vis_res[i_index]['utterance'].split()[i]] = t
+            # out['token_simi'] = token_simi
 
-            for j in range(5):
-                out_ins_attention = {}
-                for i in range(len(vis_res[i_index]['utterance'].split())):
-                    out_ins_attention[vis_res[i_index]['utterance'].split()[i]] = vis_res[i_index]['attention'][j][i].tolist()
+            # for j in range(5):
+            #     out_ins_attention = {}
+            #     for i in range(len(vis_res[i_index]['utterance'].split())):
+            #         out_ins_attention[vis_res[i_index]['utterance'].split()[i]] = vis_res[i_index]['attention'][j][i].tolist()
 
-                ins_simi[str(j)+' simi'] = out_ins_attention
-                ins_simi[str(j)+' dist'] = vis_res[i_index]['instruction_prop'][j].tolist()
+            #     ins_simi[str(j)+' simi'] = out_ins_attention
+            #     ins_simi[str(j)+' dist'] = vis_res[i_index]['instruction_prop'][j].tolist()
 
-            out['ins'] = ins_simi
+            # out['ins'] = ins_simi
 
 
 
@@ -372,31 +371,36 @@ if __name__ == '__main__':
             
             # anchor_pos = vis_res[i_index]['anchor_pos']
             
-            id_to_class = {v:k for k, v in class_to_idx.items()}
+            # id_to_class = {v:k for k, v in class_to_idx.items()}
+            # out = {}
+            # out['class_label'] = id_to_class[int(vis_res[i_index]['target_class'])]
+            # out['anchor_class'] = id_to_class[int(vis_res[i_index]['anchor_class'])]
+            # out['sr_type'] = edges[int(vis_res[i_index]['sr_type'])]
+            
             # anchor_tar_edge = vis_res[i_index]['edge_prob'][pos][anchor_pos]
             
-            objects = {}
-            for i in range(vis_res[i_index]['context_size']):
-                object_info = {}
-                # object_info["attention"] = prob[:,i].tolist()
-                simi = {}
-                for j in range(20):
-                    simi[str(j) + vocabs[vis_res[i_index]['simi_index'][i][j]]] = vis_res[i_index]['simi'][i][j].tolist()
+            # objects = {}
+            # for i in range(vis_res[i_index]['context_size']):
+            #     object_info = {}
+            #     # object_info["attention"] = prob[:,i].tolist()
+            #     simi = {}
+            #     for j in range(20):
+            #         simi[str(j) + vocabs[vis_res[i_index]['simi_index'][i][j]]] = vis_res[i_index]['simi'][i][j].tolist()
                    
-                object_info["simi"] = simi
-                # for j in range(9):
-                #     object_info[id_to_class[int(vis_res[i_index]['class_index'][i][j])]] = vis_res[i_index]['objects_pred'][i][j].tolist()
-                # attention['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]] + ' pred:' +  id_to_class[obj_predclass[i]]] = prob[:,i].tolist()
-                objects['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]]] = object_info
+            #     object_info["simi"] = simi
+            #     # for j in range(9):
+            #     #     object_info[id_to_class[int(vis_res[i_index]['class_index'][i][j])]] = vis_res[i_index]['objects_pred'][i][j].tolist()
+            #     # attention['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]] + ' pred:' +  id_to_class[obj_predclass[i]]] = prob[:,i].tolist()
+            #     objects['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]]] = object_info
             
-            ins_simi = {}
+            # ins_simi = {}
             # print(vis_res[i_index]['ins_simi_index'].shape, vis_res[i_index]['ins_simi_index'])
 
-            for i in range(5):
-                ins1= {}
-                for j in range(20):
-                    ins1[vocabs[vis_res[i_index]['ins_simi_index'][i, j]]] = vis_res[i_index]['ins_simi'][i, j].tolist()
-                ins_simi[i] = ins1
+            # for i in range(5):
+            #     ins1= {}
+            #     for j in range(20):
+            #         ins1[vocabs[vis_res[i_index]['ins_simi_index'][i, j]]] = vis_res[i_index]['ins_simi'][i, j].tolist()
+            #     ins_simi[i] = ins1
                 # if object_class2[vis_res[i_index]['ins_simi_index'][0, j]] not in ins1.keys():
                 # ins1[object_class1[vis_res[i_index]['ins_simi_index'][0, j]]] = vis_res[i_index]['ins_simi'][0, j].tolist()
                 # # else:
@@ -413,9 +417,9 @@ if __name__ == '__main__':
             # ins_simi['ins3'] = ins3
             # ins_simi['ins3_em'] = vis_res[i_index]['intruction'][2].tolist()
             
-            out['ins_simi'] = ins_simi
+            # out['ins_simi'] = ins_simi
                 
-            out['object_info'] =objects
+            # out['object_info'] =objects
 
             #pred_class
             # print(type(vis_res[i_index]['obj_prob'][atten_obj[0]]), prob, atten_obj, np.shape(vis_res[i_index]['obj_prob'][atten_obj[0]]), np.shape(vis_res[i_index]['obj_prob']))
@@ -433,26 +437,26 @@ if __name__ == '__main__':
             # t_a_sr = dict(zip(relation_semantic, anchor_tar_edge.tolist()))
             # out['target_anchor_relation'] = t_a_sr
             
-            id_to_class = {v:k for k, v in class_to_idx.items()}
-            obj_class = vis_res[i_index]['class_label']
-            t_obj = {}
-            p_obj = {}
-            t_obj['target class'] = id_to_class[obj_class[pos]]
-            p_obj['ptarget class'] = id_to_class[obj_class[ppos]]
-            attr = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short']
-            obj_attr = vis_res[i_index]['obj_attr']
+            # id_to_class = {v:k for k, v in class_to_idx.items()}
+            # obj_class = vis_res[i_index]['class_label']
+            # t_obj = {}
+            # # p_obj = {}
+            # t_obj['target class'] = id_to_class[obj_class[pos]]
+            # p_obj['ptarget class'] = id_to_class[obj_class[ppos]]
+            # attr = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short']
+            # obj_attr = vis_res[i_index]['obj_attr']
             
-            for i in range(len(attr)):
-                t_obj[attr[i]] = obj_attr[pos][i].tolist()
-                p_obj[attr[i]] = obj_attr[ppos][i].tolist()
+            # for i in range(len(attr)):
+            #     t_obj[attr[i]] = obj_attr[pos][i].tolist()
+            #     p_obj[attr[i]] = obj_attr[ppos][i].tolist()
 
-            t_obj['center'] = vis_res[i_index]['obj_center'][pos].tolist()
-            t_obj['size'] = vis_res[i_index]['obj_size'][pos].tolist()
-            p_obj['center'] = vis_res[i_index]['obj_center'][ppos].tolist()
-            p_obj['size'] = vis_res[i_index]['obj_size'][ppos].tolist()
+            # t_obj['center'] = vis_res[i_index]['obj_center'][pos].tolist()
+            # t_obj['size'] = vis_res[i_index]['obj_size'][pos].tolist()
+            # p_obj['center'] = vis_res[i_index]['obj_center'][ppos].tolist()
+            # p_obj['size'] = vis_res[i_index]['obj_size'][ppos].tolist()
             
-            out['tobj'] = t_obj
-            out['pobj'] = p_obj
+            # out['tobj'] = t_obj
+            # out['pobj'] = p_obj
 
 
     
@@ -487,9 +491,9 @@ if __name__ == '__main__':
 
             
             # pos_id = vis_res[i_index]['object_ids']
-            director = '/home/yixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
+            director = '/home/user/liyixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
             scan.visualize_heatmap(pid= p_id, id = t_id, pos_id = None, filedir = director, utterance = vis_res[i_index]['utterance'].replace("/", "or"))
-            with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
-                json.dump(out, file, indent = 4)
+            # with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
+            #     json.dump(out, file, indent = 4)
             # print("***************")
             # scan.visualize_ground(p_id, t_id, '/data1/liyixuan/referit_my/vis/{}_{}_{}.ply'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or")))

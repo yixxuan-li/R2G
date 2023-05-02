@@ -59,7 +59,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--max-train-epochs', type=int, default=300, help='number of training epochs. [default: 100]')
     parser.add_argument('--n-workers', type=int, default=-1,
                         help='number of data loading workers [default: -1 is all cores available -1.]')
-    parser.add_argument('--random-seed', type=int, default=2023,
+    parser.add_argument('--random-seed', type=int, default=2020,
                         help='Control pseudo-randomness (net-wise, point-cloud sampling etc.) fostering reproducibility.')
     parser.add_argument('--init-lr', type=float, default=0.0005, help='learning rate for training.')
     parser.add_argument('--patience', type=int, default=70, help='if test-acc does not improve for patience consecutive'

@@ -545,7 +545,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
         batch_size = batch['target_pos'].size(0)
         for i in range(batch_size):
             # print(res['simi'][i, :].shape, res['ins_simi'][i, :].shape)
-            adata, aindex = torch.sort(res['token'][i], dim = -1, descending = True) 
+            # adata, aindex = torch.sort(res['token'][i], dim = -1, descending = True) 
             # print(adata.shape, aindex.shape)
             res_list.append({
                 'scan_id': batch['scan_id'][i],
@@ -561,27 +561,30 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 # 'prob': res['prob'][i].cpu().numpy(),
                 # 'obj_prob': res['class_logits'][i].cpu().numpy(),
                 'class_label': batch['class_labels'][i].cpu().numpy(),
-                'attention_data': adata.cpu().numpy(),
-                'attention_index': aindex.cpu().numpy(),
-                'attention': res['attention'][i].cpu().numpy(),
-                'instruction_prop': res['instruction_prop'][i].cpu().numpy(),
-                'simi': res['simi'][i, :].cpu().numpy(),
-                'simi_index': res['simi_index'][i, :].cpu().numpy(),
-                'ins_simi': F.softmax(res['ins_simi'][i, :], dim = -1).cpu().numpy(),
-                'ins_simi_index': res['ins_simi_index'][i, :].cpu().numpy(),
-                'obj_attr': res['obj_attr'][i, :].cpu().numpy(),
-                'edge_prob':res['edge_prob'][i,:, :, :].cpu().numpy(),
+                # 'attention_data': adata.cpu().numpy(),
+                # 'attention_index': aindex.cpu().numpy(),
+                # 'attention': res['attention'][i].cpu().numpy(),
+                # 'instruction_prop': res['instruction_prop'][i].cpu().numpy(),
+                # 'simi': res['simi'][i, :].cpu().numpy(),
+                # 'simi_index': res['simi_index'][i, :].cpu().numpy(),
+                # 'ins_simi': F.softmax(res['ins_simi'][i, :], dim = -1).cpu().numpy(),
+                # 'ins_simi_index': res['ins_simi_index'][i, :].cpu().numpy(),
+                # 'obj_attr': res['obj_attr'][i, :].cpu().numpy(),
+                # 'edge_prob':res['edge_prob'][i,:, :, :].cpu().numpy(),
                 'obj_center': batch['obj_position'][i].cpu().numpy(),
                 'obj_size': batch['obj_size'][i].cpu().numpy(),
                 'scene_center': batch['scene_center'][i].cpu().numpy(),
-                'scene_size': batch['scene_size'][i].cpu().numpy()
+                'scene_size': batch['scene_size'][i].cpu().numpy(),
                 # 'sr_prob': res['sr_prob'][i].cpu().numpy(),
                 # "tar_anc_sr": res['tar_anc_sr'][i].cpu().numpy(),
-                # "sr_type": batch['sr_type'][i],
-                # 'anchor_pos': batch['anchors_pos'][i].cpu().numpy(),
+                "sr_type": batch['sr_type'][i].cpu().numpy(),
+                'target_class': batch['target_class'][i].cpu().numpy(),
+                # "pred_sr": res['relation_logits'][i],
+                'anchor_class': batch['anchor_class'][i].cpu().numpy()
                 # 'edge_prob': res['edge_prob_logits'][i].cpu().numpy()
                 #'is_easy': batch['is_easy'][i]
-            })
+                }
+            )
         if ind ==1:
             break 
 
