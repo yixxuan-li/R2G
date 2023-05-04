@@ -4,8 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 from itertools import combinations
 import sys
-sys.path.append('./example/build')
-# import relation
+sys.path.append('/data1/liyixuan/referit_my/referit3d/models/backbone/example/build')
+import relation
  
 # # nr3d
 # nr3dclass = ['table', 'alarm', 'armchair', 'backpack', 'bag', 'ball', 'banner', 'bar', 'basket', 'wall', 'cabinet', 'counter', 'door', 'bathtub', 'chair', 'bear', 'bed', 'bottles', 'bench', 'bicycle', 'bin', 'blackboard', 'blanket', 'blinds', 'board', 'boards', 'book', 'rack', 'books', 'bookshelf', 'bookshelves', 'bottle', 'bowl', 'box', 'boxes', 'bucket', 'doors', 'cabinets', 'calendar', 'camera', 'can', 'car', 'cardboard', 'carpet', 'cart', 'case', 'ceiling', 'fan', 'light', 'chest', 'clock', 'closet', 'floor', 'rod', 'shelf', 'cloth', 'clothes', 'clothing', 'coat', 'column', 'container', 'pot', 'copier', 'couch', 'cushion', 'crate', 'cup', 'cups', 'curtain', 'curtains', 'decoration', 'desk', 'lamp', 'dishwasher', 'dispenser', 'display', 'dolly', 'drawer', 'dresser', 'easel', 'machine', 'sign', 'faucet', 'fireplace', 'stand', 'ladder', 'folder', 'footrest', 'footstool', 'frame', 'furniture', 'futon', 'globe', 'guitar', 'hamper', 'rail', 'towel', 'hanging', 'hat', 'headboard', 'headphones', 'heater', 'jacket', 'keyboard', 'piano', 'laptop', 'ledge', 'legs', 'switch', 'luggage', 'magazine', 'mail', 'tray', 'map', 'mat', 'mattress', 'microwave', 'mirror', 'monitor', 'mouse', 'mug', 'nightstand', 'notepad', 'object', 'ottoman', 'oven', 'painting', 'paper', 'papers', 'person', 'photo', 'picture', 'pictures', 'pillar', 'pillow', 'pillows', 'pipe', 'pipes', 'plant', 'poster', 'printer', 'projector', 'screen', 'purse', 'radiator', 'railing', 'refrigerator', 'roomba', 'rug', 'seat', 'seating', 'shampoo', 'shirt', 'shoe', 'shoes', 'shorts', 'shower', 'walls', 'sink', 'soap', 'stair', 'staircase', 'stairs', 'statue', 'step', 'stool', 'sticker', 'stove', 'suitcase', 'suitcases', 'sweater', 'tank', 'telephone', 'thermostat', 'toaster', 'toilet', 'towels', 'tv', 'umbrella', 'vase', 'vent', 'wardrobe', 'whiteboard', 'window', 'windowsill', 'wood']
@@ -46,28 +46,28 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         mask_obj_class = (torch.argmax(obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
         # mask_obj_class = torch.where(torch.isinf(mask_obj_class), torch.full_like(mask_obj_class, -1), mask_obj_class)
         # ------------------------ pytorch -----------------------------
-        for i in range(bsz):
-            batch_obj_prob = mask_obj_class[i]# N
-            batch_obj_class_set = set(batch_obj_prob.numpy())
-            batch_obj_class_set.discard(-np.inf)
-            for tar_ind in range(context_size[i]):
-                tar_class = batch_obj_prob[tar_ind]
-                _batch_obj_class_set = batch_obj_class_set
-                _batch_obj_class_set.discard(tar_class.numpy().tolist())
-                for ref_class in _batch_obj_class_set:
-                    ref_obj_ind = torch.nonzero(torch.eq(batch_obj_prob, ref_class)).squeeze(-1)
-                    ref_obj_distance = obj_distance[i, ref_obj_ind, tar_ind]
-                    closet = ref_obj_ind[torch.argmin(ref_obj_distance)]
-                    farthest = ref_obj_ind[torch.argmax(ref_obj_distance)]
-                    if closet == farthest:
-                        continue
-                    origin_relation[i, closet, tar_ind, -5] = 1
-                    origin_relation[i, farthest, tar_ind, -6] = 1
+        # for i in range(bsz):
+        #     batch_obj_prob = mask_obj_class[i]# N
+        #     batch_obj_class_set = set(batch_obj_prob.numpy())
+        #     batch_obj_class_set.discard(-np.inf)
+        #     for tar_ind in range(context_size[i]):
+        #         tar_class = batch_obj_prob[tar_ind]
+        #         _batch_obj_class_set = batch_obj_class_set
+        #         _batch_obj_class_set.discard(tar_class.numpy().tolist())
+        #         for ref_class in _batch_obj_class_set:
+        #             ref_obj_ind = torch.nonzero(torch.eq(batch_obj_prob, ref_class)).squeeze(-1)
+        #             ref_obj_distance = obj_distance[i, ref_obj_ind, tar_ind]
+        #             closet = ref_obj_ind[torch.argmin(ref_obj_distance)]
+        #             farthest = ref_obj_ind[torch.argmax(ref_obj_distance)]
+        #             if closet == farthest:
+        #                 continue
+        #             origin_relation[i, closet, tar_ind, -5] = 1
+        #             origin_relation[i, farthest, tar_ind, -6] = 1
         # -------------------------------------------------------------
         
         # -------------------------- c++ ------------------------------
 
-        # origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
+        origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
         # -------------------------------------------------------------
                     
 

@@ -269,7 +269,6 @@ if __name__ == '__main__':
         logger.info('Finished training successfully. Good job!')
 
     elif args.mode == 'evaluate':
-
         meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
         print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
         print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))

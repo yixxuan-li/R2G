@@ -1,3 +1,4 @@
+# for load
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -360,10 +361,10 @@ class NSM(nn.Module):
         if self.lang_relation_classify is not None:
             lang_relation_logits = self.lang_relation_classify(instructions[:, :].unbind(1)[1])# B x n_relation
             
-            # relation_regular = torch.tensor([0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]).unsqueeze(0).repeat(batch_size, 1).cuda()
+            relation_regular = torch.tensor([0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]).unsqueeze(0).repeat(batch_size, 1).cuda()
             
-            # relation_regular[:, torch.argmax(lang_relation_logits, dim =-1)] = 0.82
-            # edge_attr = (lang_relation_logits * relation_regular.view(batch_size,1,1, -1)) @ relation_vocab
+            relation_regular[:, torch.argmax(lang_relation_logits, dim =-1)] = 0.82
+            edge_attr = (relation_logits * relation_regular.view(batch_size,1,1, -1)) @ relation_vocab
             
             
             # generate new instruction based on relation predicted
@@ -453,5 +454,5 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, anchor_logits, lang_relation_logits, target_logits, prob, all_instruction
+        return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
 

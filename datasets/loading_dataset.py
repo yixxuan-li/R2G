@@ -67,9 +67,9 @@ class ListeningDataset(Dataset):
             # print(token)
             if token in self.vocab.word2idx.keys():
                 raw_token_filtered.append(token)
-        tokens, lang_mask = self.vocab.encode(ref['tokens'], None, add_begin_end=False)
+        tokens, lang_mask = self.vocab.encode(ref['tokens'],self.max_seq_len)
         tokens_len = len(ref['tokens'])
-        tokens_filterd, tokens_filterd_mask =  self.vocab.encode(raw_token_filtered, None, add_begin_end=False)
+        tokens_filterd, tokens_filterd_mask =  self.vocab.encode(raw_token_filtered, self.max_seq_len, add_begin_end=False)
         tokens = np.array(tokens, dtype=np.long)
 
         lang_mask = np.array(lang_mask)
@@ -313,14 +313,14 @@ class ListeningDataset(Dataset):
         res['target_class'] = self.class_to_idx[target.instance_label]
         if anchor is not None:
             res['anchor_class'] = self.class_to_idx[anchor.instance_label]
-        res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)-1])
+        res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
         for i in range(res['context_size']):
             res['gt_class'][i, res['class_labels'][i]] = 1
 
         
         res['target_pos'] = target_pos
         res['target_class_mask'] = target_class_mask
-        res['tokens'] = torch.Tensor(tokens)
+        res['tokens'] = tokens
         res['is_nr3d'] = is_nr3d
 
         if self.visualization:
@@ -395,6 +395,6 @@ def make_data_loaders(args, referit_data, vocab, class_to_idx, scans, mean_rgb):
         if split == 'test':
             seed = args.random_seed
 
-        data_loaders[split] = dataset_to_dataloader(dataset, split, args.batch_size, n_workers, seed=seed, collate_fn = collate_my)
+        data_loaders[split] = dataset_to_dataloader(dataset, split, args.batch_size, n_workers, seed=seed)
 
     return data_loaders
