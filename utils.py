@@ -326,7 +326,7 @@ def compute_losses(batch, res, criterion_dict, args):
     if args.instruction_cls_alpha > 0:
         criterion = criterion_dict['instruction_logits']
         instruction_clf_loss = criterion(res['instruction_logits'], batch['anchor_class'].long().cuda())
-        total_loss += instruction_clf_loss * args.lang_cls_alpha
+        total_loss += instruction_clf_loss * args.instruction_cls_alpha
 
         
     if args.language_relation_alpha > 0:

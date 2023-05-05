@@ -87,10 +87,10 @@ class R2G(nn.Module):
         self.concept_vocab_set = concept_vocab_set
 
         # Encoders
-        self.object_encoder = object_encoder
+        # self.object_encoder = object_encoder
 
         ## token embedder
-        # self.token_embed = token_embed
+        self.token_embed = token_embed
 
         # Classifier heads
         self.object_clf = None

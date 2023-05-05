@@ -65,8 +65,8 @@ if __name__ == '__main__':
         params = list(model.named_parameters())
 
         param_group = [
-            {'params':[p for n,p in params if 'nsm' in n],'lr':1e-4},
-            {'params':[p for n,p in params if 'nsm' not in n ], 'lr':1e-4}
+            {'params':[p for n,p in params if 'clf' in n],'lr':5e-4},
+            {'params':[p for n,p in params if 'clf' not in n ], 'lr':1e-4}
         ]
         return param_group
 
