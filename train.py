@@ -63,10 +63,15 @@ if __name__ == '__main__':
 
     def get_group_parameters(model):
         params = list(model.named_parameters())
-
+        for n,p in params:
+            if 'clf' in n:
+                print(n)
         param_group = [
             {'params':[p for n,p in params if 'clf' in n],'lr':5e-4},
-            {'params':[p for n,p in params if 'clf' not in n ], 'lr':1e-4}
+            # {'params':[p for n,p in params if 'target_clf' in n],'lr':1e-3},
+            # {'params':[p for n,p in params if 'relation_clf' in n],'lr':1e-3},
+            # {'params':[p for n,p in params if 'anchor_clf' in n],'lr':1e-3},
+            {'params':[p for n,p in params if 'clf' not in n ], 'lr':5e-4}
         ]
         return param_group
 
@@ -156,13 +161,13 @@ if __name__ == '__main__':
     #     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
     #                                                             patience=5, verbose=True)        
     # else:
-    optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
-                                                            patience=5, verbose=True)
-        # group_parameters = get_group_parameters(model)
-        # optimizer = optim.Adam(group_parameters, lr=args.init_lr)
-        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
-        #                                                                 patience=5, verbose=True)  
+    # optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
+    #                                                         patience=5, verbose=True)
+    # group_parameters = get_group_parameters(model)
+    # optimizer = optim.Adam(group_parameters, lr=args.init_lr)
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.65,
+    #                                                                 patience=5, verbose=True)  
 
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
     # optimizer = optim.SGD(model.parameters(), lr=args.init_lr)

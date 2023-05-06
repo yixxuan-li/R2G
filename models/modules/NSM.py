@@ -304,7 +304,7 @@ class NSM(nn.Module):
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
         self.anchor_clf = instruction_clf
-        self.lang_relation_classify = relation_clf
+        self.relation_clf = relation_clf
         self.target_clf = language_clf        
         
     def forward(
@@ -358,18 +358,12 @@ class NSM(nn.Module):
 
         lang_relation_logits = None
         relation_instruction = None
-        if self.lang_relation_classify is not None:
-            lang_relation_logits = self.lang_relation_classify(instructions[:, :].unbind(1)[1])# B x n_relation
-            
-            relation_regular = torch.tensor([0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]).unsqueeze(0).repeat(batch_size, 1).cuda()
-            
-            relation_regular[:, torch.argmax(lang_relation_logits, dim =-1)] = 0.82
-            edge_attr = (relation_logits * relation_regular.view(batch_size,1,1, -1)) @ relation_vocab
-            
+        if self.relation_clf is not None:
+            lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
             
             # generate new instruction based on relation predicted
             #                   B x n_relations        n_relations x hidden_dim -> B x  hidden_dim
-            relation_instruction = lang_relation_logits @ relation_vocab
+            relation_instruction = lang_relation_logits @ concept_vocab[concept_vocab_seg[-2]:]
             # instructions[:, 1, :] = new_instruction
             
         target_logits = None
