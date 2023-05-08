@@ -311,6 +311,10 @@ class ListeningDataset(Dataset):
         target_class_mask[:len(context)] = [target.instance_label == o.instance_label for o in context]
 
         res['target_class'] = self.class_to_idx[target.instance_label]
+        instruction = [anchor.instance_label.split(' ')[-1], sr_type, target.instance_label.split(' ')[-1]]
+        res['instructions_token'] =  np.array(self.vocab.encode(instruction, add_begin_end=False)[0], dtype = np.long)
+
+
         if anchor is not None:
             res['anchor_class'] = self.class_to_idx[anchor.instance_label]
         res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
