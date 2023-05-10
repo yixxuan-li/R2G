@@ -96,7 +96,7 @@ class NSMCell(nn.Module):
         dropout: float = 0.0
     ) -> None:
         super(NSMCell, self).__init__()
-        self.nonlinearity = nn.ELU()
+        self.nonlinearity = nn.Sigmoid()
 
         self.weight_node_properties = nn.Parameter(
             torch.tensor(np.vstack([np.eye(input_size).reshape(1, input_size, input_size) for i in range(n_node_properties)]) ).to(torch.float32), requires_grad = True
@@ -111,6 +111,7 @@ class NSMCell(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         # self.weighten_state = nn.Linear(input_size, 1)
         # self.weighten_edge = nn.Linear(input_size, 1)
+
 
 
     def forward(

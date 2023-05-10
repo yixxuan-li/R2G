@@ -87,15 +87,15 @@ class R2G(nn.Module):
         self.concept_vocab_set = concept_vocab_set
 
         # Encoders
-        # self.object_encoder = object_encoder
+        self.object_encoder = object_encoder
 
         ## token embedder
         self.token_embed = token_embed
 
         # Classifier heads
         self.object_clf = None
-        # if args.obj_cls_alpha != 0:
-        #     self.object_clf = object_clf
+        if args.obj_cls_alpha != 0:
+            self.object_clf = object_clf
         # self.language_clf = language_clf
         # self.instruction_clf = instruction_clf
         
@@ -146,12 +146,12 @@ class R2G(nn.Module):
     def __call__(self, batch: dict) -> dict:
         result = defaultdict(lambda: None)
         # Get features for each segmented scan object based on color and point-cloud
-        # objects_features = get_siamese_features(self.object_encoder, batch['objects'],
-        #                                         aggregator=torch.stack)  # B X N_Objects x object-latent-dim
+        objects_features = get_siamese_features(self.object_encoder, batch['objects'],
+                                                aggregator=torch.stack)  # B X N_Objects x object-latent-dim
         # Classify the segmented objects
-        # if self.object_clf is not None:
-        #     objects_classifier_features = objects_features
-        #     result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
+        if self.object_clf is not None:
+            objects_classifier_features = objects_features
+            result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
 
         # Get feature for utterance
         language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
