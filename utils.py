@@ -173,7 +173,7 @@ def create_logger(log_dir, std_out=True):
 
 def make_batch_keys(args, extras=None):
     """depending on the args, different data are used by the listener."""
-    batch_keys = ['objects', 'tokens', 'target_pos']  # all models use these
+    batch_keys = ['objects', 'tokens', 'target_pos', 'ins_token']  # all models use these
     # batch_keys = ['objects', 'tokens', 'target_pos', 'lang_mask', 'color_feature', 'size_feature', 'position_features', 'color_token', 'object_mask']  # cause segmentation fault 
     if extras is not None:
         batch_keys += extras

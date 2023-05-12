@@ -76,7 +76,14 @@ class ListeningDataset(Dataset):
         tokens_filterd = np.array(tokens_filterd, dtype=np.long)
         tokens_filterd_mask = np.array(tokens_filterd_mask)
         is_nr3d = ref['dataset'] == 'nr3d'
-
+        # print(ref.keys())
+        if 'instruction' in ref.keys():
+            instructions = []
+            for k, v in eval(ref['instruction']).items():
+                instructions.append(v.lower())
+            instructions.reverse()
+        instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+        instruction_tokens = np.array(instruction_tokens)
         anchors_id = None
         anchor = None
         if 'anchor_ids' in ref.keys():
@@ -89,7 +96,7 @@ class ListeningDataset(Dataset):
             sr_type = ref['reference_type']
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -134,7 +141,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type = self.get_reference_data(index)
+        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens = self.get_reference_data(index)
         # Make a context of distractors
         context = self.prepare_distractors(scan, target, anchor)
 
@@ -168,6 +175,8 @@ class ListeningDataset(Dataset):
         res['scene_center'], res['scene_size'] = scan.get_center_size()
         res['scene_center'] = np.array(res['scene_center'])
         res['scene_size'] = np.array(res['scene_size'])
+
+        res['ins_token'] = instruction_tokens
 
         
 
@@ -322,6 +331,7 @@ class ListeningDataset(Dataset):
         res['target_class_mask'] = target_class_mask
         res['tokens'] = tokens
         res['is_nr3d'] = is_nr3d
+
 
         if self.visualization:
             distrators_pos = np.zeros((6))  # 6 is the maximum context size we used in dataset collection

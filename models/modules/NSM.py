@@ -326,14 +326,14 @@ class NSM(nn.Module):
                  ):
         super(NSM, self).__init__()
 
-        self.instructions_model = InstructionsModel(
-            input_size, num_instructions, description_hidden_size, dropout=dropout
-        )#300, 5+1, 16
+        # self.instructions_model = InstructionsModel(
+        #     input_size, num_instructions, description_hidden_size, dropout=dropout
+        # )#300, 5+1, 16
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
-        self.anchor_clf = instruction_clf
-        self.relation_clf = relation_clf
-        self.target_clf = language_clf        
+        # self.anchor_clf = instruction_clf
+        # self.relation_clf = relation_clf
+        # self.target_clf = language_clf        
         
     def forward(
         self,
@@ -348,7 +348,8 @@ class NSM(nn.Module):
         relation_vocab = None,
         context_size = None,
         lang_mask = None,
-        language_len = None
+        language_len = None,
+        instructions = None
     ):
         """
         Dimensions:
@@ -373,32 +374,32 @@ class NSM(nn.Module):
         num_property = len(property_embeddings)
         ## transform the description to instruction based on concept vocab
         ## instructions: B x instruction_length x embedding_size; encoded_questions:  B x LSTM-encoder-hidden-size
-        instructions, encoded_questions = self.instructions_model(
-            concept_vocab, description
-        )
+        # instructions, encoded_questions = self.instructions_model(
+        #     concept_vocab, description
+        # )
         
-        ## constrain the 3 instructions
-        anchor_logits = None
-        anchor_instruction = None
-        if self.anchor_clf is not None:
-            anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-            anchor_instruction = anchor_logits @ concept_vocab[:concept_vocab_seg[0]]
+        # ## constrain the 3 instructions
+        # anchor_logits = None
+        # anchor_instruction = None
+        # if self.anchor_clf is not None:
+        #     anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
+        #     anchor_instruction = anchor_logits @ concept_vocab[:concept_vocab_seg[0]]
 
-        lang_relation_logits = None
-        relation_instruction = None
-        if self.relation_clf is not None:
-            lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
+        # lang_relation_logits = None
+        # relation_instruction = None
+        # if self.relation_clf is not None:
+        #     lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
             
-            # generate new instruction based on relation predicted
-            #                   B x n_relations        n_relations x hidden_dim -> B x  hidden_dim
-            relation_instruction = lang_relation_logits @ concept_vocab[concept_vocab_seg[-2]:]
-            # instructions[:, 1, :] = new_instruction
+        #     # generate new instruction based on relation predicted
+        #     #                   B x n_relations        n_relations x hidden_dim -> B x  hidden_dim
+        #     relation_instruction = lang_relation_logits @ concept_vocab[concept_vocab_seg[-2]:]
+        #     # instructions[:, 1, :] = new_instruction
             
-        target_logits = None
-        target_instruction = None
-        if self.target_clf is not None:
-            target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-            target_instruction = target_logits @ concept_vocab[:concept_vocab_seg[0]]
+        # target_logits = None
+        # target_instruction = None
+        # if self.target_clf is not None:
+        #     target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
+        #     target_instruction = target_logits @ concept_vocab[:concept_vocab_seg[0]]
             
         
 
@@ -430,13 +431,6 @@ class NSM(nn.Module):
             # distribution = F.softmax(distribution, dim = -1)
             # update the distribution: B xN
             instruction = instructions[:, :].unbind(1)[ins_id]
-            if ins_id == 0 and anchor_instruction is not None:
-                instruction = anchor_instruction
-            if ins_id == 1 and relation_instruction is not None:
-                instruction = relation_instruction
-            if ins_id == 2 and target_instruction is not None:
-                instruction = target_instruction
-                t_distribution = distribution
                 
                 
             distribution = self.nsm_cell(
@@ -454,7 +448,7 @@ class NSM(nn.Module):
             # if ins_id == 1:
             #     distribution = distribution + t_distribution
             
-        all_instruction = instructions[:, :].unbind(1)
+        # all_instruction = instructions[:, :].unbind(1)
         # print(distribution[:2])
         # arrge = node_attr.view(batch_size, num_node, -1)
         """
@@ -476,5 +470,5 @@ class NSM(nn.Module):
         # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
         # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
         # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
+        return distribution, None, prob, None, None, None, None
 
