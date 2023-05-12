@@ -87,15 +87,15 @@ class R2G(nn.Module):
         self.concept_vocab_set = concept_vocab_set
 
         # Encoders
-        # self.object_encoder = object_encoder
+        self.object_encoder = object_encoder
 
         ## token embedder
         self.token_embed = token_embed
 
         # Classifier heads
         self.object_clf = None
-        # if args.obj_cls_alpha != 0:
-        #     self.object_clf = object_clf
+        if args.obj_cls_alpha != 0:
+            self.object_clf = object_clf
         # self.language_clf = language_clf
         # self.instruction_clf = instruction_clf
         
@@ -146,12 +146,12 @@ class R2G(nn.Module):
     def __call__(self, batch: dict) -> dict:
         result = defaultdict(lambda: None)
         # Get features for each segmented scan object based on color and point-cloud
-        # objects_features = get_siamese_features(self.object_encoder, batch['objects'],
-        #                                         aggregator=torch.stack)  # B X N_Objects x object-latent-dim
+        objects_features = get_siamese_features(self.object_encoder, batch['objects'],
+                                                aggregator=torch.stack)  # B X N_Objects x object-latent-dim
         # Classify the segmented objects
-        # if self.object_clf is not None:
-        #     objects_classifier_features = objects_features
-        #     result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
+        if self.object_clf is not None:
+            objects_classifier_features = objects_features
+            result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
 
         # Get feature for utterance
         language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
@@ -170,10 +170,10 @@ class R2G(nn.Module):
         if self.object_semantic_filter_index is not None:
             object_semantic_prob = F.softmax(result['class_logits'][:, :, self.object_semantic_filter_index], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
         else:
-            # object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
-            # function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
-            object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
-            function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
+            function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            # object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
+            # function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
 
         color_onehot = torch.Tensor(batch['color_onehot']).cuda()   # B X N X one-hot, (B * 52 * 13)
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
@@ -188,8 +188,8 @@ class R2G(nn.Module):
             #          B x N x N x k       K x embedding 
             edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[2]:]
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
-            # edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            # edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             # edge_prob_logits = (SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'])).cuda() # Bx N x N xk
             #          B x N x N x k       K x embedding 
             # edge_attr = F.softmax(edge_prob_logits, dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]

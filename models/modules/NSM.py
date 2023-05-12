@@ -163,16 +163,25 @@ class NSMCell(nn.Module):
             node_scores = self.dropout(
                 self.nonlinearity(
                     torch.sum(
-                        (instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-                        # B x P x N x H
-                        * (node_attr.transpose(1, 2)
-                        # P x H x H -> 1 x P x H x H -> B x P x H x H
-                        @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim))),
+                            F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
+                            # B x P x N x H
+                            * node_attr.transpose(1, 2)
+                            # P x H x H -> 1 x P x H x H -> B x P x H x H
+                            @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim), dim = 2),
                         dim=1,
                     )# B x P x N x H -> B x N x H 
                 )
             )
-
+            # node_scores = self.dropout(
+            #     self.nonlinearity(
+            #         torch.sum(
+            #                 F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
+            #                 # B x P x N x H
+            #                 * node_attr.transpose(1, 2)),
+            #             dim=1,
+            #         )# B x P x N x H -> B x N x H 
+            #     )
+            # )
         if ins_id == 2:
         #     node_scores = self.dropout(
         #         self.nonlinearity(
@@ -192,15 +201,25 @@ class NSMCell(nn.Module):
             node_scores = self.dropout(
                 self.nonlinearity(
                     torch.sum(
-                        (instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-                        # B x P x N x H
-                        * (node_attr.transpose(1, 2)
-                        # P x H x H -> 1 x P x H x H -> B x P x H x H
-                        @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim))),
+                            F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
+                            # B x P x N x H
+                            * node_attr.transpose(1, 2)
+                            # P x H x H -> 1 x P x H x H -> B x P x H x H
+                            @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim), dim = 2),
                         dim=1,
                     )# B x P x N x H -> B x N x H 
                 )
             )
+            # node_scores = self.dropout(
+            #     self.nonlinearity(
+            #         torch.sum(
+            #                 F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
+            #                 # B x P x N x H
+            #                 * node_attr.transpose(1, 2)),
+            #             dim=1,
+            #         )# B x P x N x H -> B x N x H 
+            #     )
+            # )
 
         if ins_id %2 != 0:
             # E x H
@@ -216,14 +235,23 @@ class NSMCell(nn.Module):
             # )
             edge_scores = self.dropout(
                 self.nonlinearity(
-                    (# B x 1 x H
-                    instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
-                    # B x (N x N) x H
-                    * (edge_attr.view(batch_size, num_node*num_node, -1)
-                    # H x H -> B x H x H
-                    @ self.weight_edge.unsqueeze(0).expand(batch_size, dim, dim))).view(batch_size, num_node, num_node, -1)
+                        F.normalize(# B x 1 x H
+                        instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
+                        # B x (N x N) x H
+                        * edge_attr.view(batch_size, num_node*num_node, -1)
+                        # H x H -> B x H x H
+                        @ self.weight_edge.unsqueeze(0).expand(batch_size, dim, dim), dim = 1).view(batch_size, num_node, num_node, -1)
                 )# B x N x N x H
             )
+            # edge_scores = self.dropout(
+            #     self.nonlinearity(
+            #             F.normalize(# B x 1 x H
+            #             instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
+            #             # B x (N x N) x H
+            #             * edge_attr.view(batch_size, num_node*num_node, -1)
+            #             ).view(batch_size, num_node, num_node, -1)
+            #     )# B x N x N x H
+            # )            
             # print(tmp[0,0, :2])
             
         # shift the attention to their most relavant neibors; B x N x H -> B x N
