@@ -76,11 +76,10 @@ class ListeningDataset(Dataset):
         tokens_filterd = np.array(tokens_filterd, dtype=np.long)
         tokens_filterd_mask = np.array(tokens_filterd_mask)
         is_nr3d = ref['dataset'] == 'nr3d'
-        # print(ref.keys())
         if 'instruction' in ref.keys():
             instructions = []
-            for k, v in eval(ref['instruction']).items():
-                instructions.append(v.lower())
+            for k, v in eval(str(ref['instruction'])).items():
+                instructions.append(((v.split()[-1]).split('/'))[-1].lower())
             instructions.reverse()
         instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
         instruction_tokens = np.array(instruction_tokens)
