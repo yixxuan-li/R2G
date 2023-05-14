@@ -49,6 +49,7 @@ class R2G(nn.Module):
                  args,
                  object_encoder,
                  token_embed,
+                 scene_encoder = None,
                  object_language_clf = None,
                  object_clf=None,
                  language_clf=None,
@@ -88,6 +89,7 @@ class R2G(nn.Module):
 
         # Encoders
         self.object_encoder = object_encoder
+        self.scene_encoder = scene_encoder
 
         ## token embedder
         self.token_embed = token_embed
@@ -106,7 +108,7 @@ class R2G(nn.Module):
             print("----------add relation_pred head")
             self.relation_pred = Relation_Estimate(n_class=relation_num , d_model = args.object_latent_dim * 2, n_head = 2)
 
-        # self.attribute_pred = Attr_Estimate(n_class=13 , obj_feat = args.object_latent_dim, n_head = 2)
+        self.attribute_pred = Attr_Estimate(n_class=13 , obj_feat = args.object_latent_dim, n_head = 2)
         
         ## relation retrieval heads
         if args.relation_retrieval:
@@ -126,7 +128,7 @@ class R2G(nn.Module):
                 instruction_clf = None
             self.nsm = NSM(input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 7, 
                             description_hidden_size = 256,
                             # vocab_len = len(concept_vocab_set),
                             language_clf = language_clf,
@@ -136,7 +138,7 @@ class R2G(nn.Module):
         else:
             self.nsm = NSM(input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 7, 
                             description_hidden_size = 256,
                             # vocab_len = len(concept_vocab_set)
                             )
@@ -148,18 +150,19 @@ class R2G(nn.Module):
         # Get features for each segmented scan object based on color and point-cloud
         objects_features = get_siamese_features(self.object_encoder, batch['objects'],
                                                 aggregator=torch.stack)  # B X N_Objects x object-latent-dim
+        scene_feature =  get_siamese_features(self.scene_encoder, batch['scene_pc'].cuda().unsqueeze(1),
+                                                aggregator=torch.stack)  # B X N_Objects x object-latent-dim
         # Classify the segmented objects
         if self.object_clf is not None:
             objects_classifier_features = objects_features
             result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
 
         # Get feature for utterance
-        language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
+        # language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
         # language_embedding = batch['token_embedding'].cuda()## B X n_token X embedding
         # lang_features = self.language_encoder(batch['tokens'])
-
-
-        # get instruction:
+        
+        # get instruction
         instructions = self.token_embed(batch['ins_token'])
 
         # # Classify the target instance label based on the text
@@ -181,7 +184,18 @@ class R2G(nn.Module):
         color_onehot = torch.Tensor(batch['color_onehot']).cuda()   # B X N X one-hot, (B * 52 * 13)
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
         color_semantic_prob = color_onehot @ concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]]
-        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
+
+        ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, batch['gt_class'], batch['object_mask'], batch['context_size'])
+        lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
+                                        obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
+                                        obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+        attr_logits = torch.cat([ls_logits.float(), tl_logits.float(), batch['mc_attr'], batch['tb_attr'], F.softmax(lr_logits, dim = -1), losh_logits.float(), F.softmax(curve_logits, dim = -1)[:, :, 0].unsqueeze(-1)], dim =-1)
+        attr = attr_logits @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
+
+
+
+
+        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
         # edge_features = torch.cat([batch['edge_distance'], batch['edge_vector'], batch['edge_touch']], dim=-1)
         edge_prob = edge_prob_logits = None
@@ -189,24 +203,24 @@ class R2G(nn.Module):
         if self.args.relation_pred:
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             #          B x N x N x k       K x embedding 
-            edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[2]:]
+            edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[3]:]
         elif self.args.relation_retrieval:
             edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             # edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             # edge_prob_logits = (SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'])).cuda() # Bx N x N xk
             #          B x N x N x k       K x embedding 
             # edge_attr = F.softmax(edge_prob_logits, dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
-            edge_attr = edge_prob_logits.cuda().float() @ concept_vocab[self.concept_vocab_seg[2]:]
+            edge_attr = edge_prob_logits.cuda().float() @ concept_vocab[self.concept_vocab_seg[3]:]
             result['edge_prob_logits'] = edge_prob_logits
         else:
             # edge_attr = F.softmax(batch['edge_attr'].cuda().float(), dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
-            edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[2]:]
+            edge_attr = batch['edge_attr'].cuda().float() @ concept_vocab[self.concept_vocab_seg[3]:]
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
         if not self.args.language_relation_alpha > 0:
-            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions)
+            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = batch['ins_mask'])
         else:
-            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions)
+            final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = batch['ins_mask'])
             
             
         final_node_distribution_mask = final_node_distribution + batch['object_mask'].cuda()
@@ -298,31 +312,31 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     #     relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']#support
     relation_semantic_tokenid = vocab.encode(relation_semantic, add_begin_end = False)[0]   # 11 relation-semantic-label
 
-    size = ['large', 'small']
-    size_token = vocab.encode(size, add_begin_end = False)[0]   # 11 relation-semantic-label
-    height = ['tall', 'lower']
-    height_token = vocab.encode(height, add_begin_end = False)[0]   # 11 relation-semantic-label
-    position = ['middle', 'corner']
-    position_token = vocab.encode(position, add_begin_end = False)[0]   # 11 relation-semantic-label
-    orientation = ['top', 'bottom']
-    orientation_token = vocab.encode(orientation, add_begin_end = False)[0]   # 11 relation-semantic-label
-    end = ['leftmost', 'rightmost']
-    end_length = vocab.encode(end, add_begin_end = False)[0]   # 11 relation-semantic-label
-    length = ['long', 'short']
-    length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
-    curve = ['curve', 'pad']
-    curve_token = vocab.encode(curve, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # size = ['large', 'small']
+    # size_token = vocab.encode(size, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # height = ['tall', 'lower']
+    # height_token = vocab.encode(height, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # position = ['middle', 'corner']
+    # position_token = vocab.encode(position, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # orientation = ['top', 'bottom']
+    # orientation_token = vocab.encode(orientation, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # end = ['leftmost', 'rightmost']
+    # end_length = vocab.encode(end, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # length = ['long', 'short']
+    # length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
+    # curve = ['curve', 'pad']
+    # curve_token = vocab.encode(curve, add_begin_end = False)[0]   # 11 relation-semantic-label
 
-    # attribute = ['large', 'small', 'tall', 'lower', 'end', 'middle', 'top', 'bottom', 'leftmost', 'rightmost', 'corner', 'long', 'short']
-    # attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
+    attribute = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short', 'curve']
+    attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
 
-    property_semantic = ['identity', 'color', 'function', 'relations'] # 4 properties, NSM: L + 2, L =1
+    property_semantic = ['identity', 'function', 'color', 'attribute' 'relations'] # 4 properties, NSM: L + 2, L =1
     # property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
     # concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + \
     #     height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_tokenid
-    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_tokenid
+    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + attribute_token + relation_semantic_tokenid
     # concept_vocab_seg = [len(object_semantic_filtertoken), \
     #                      len(object_semantic_filtertoken) + len(color_semantic_token), \
     #                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
@@ -337,7 +351,8 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     concept_vocab_seg = [len(object_semantic_filtertoken), \
                          len(object_semantic_filtertoken) + len(color_semantic_token), \
                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
-                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(relation_semantic_tokenid)]
+                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(attribute_token),
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(attribute_token)  + len(relation_semantic_tokenid)]
     
     
     # make an object (segment) encoder for point-clouds with color
@@ -353,6 +368,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     #         raise ValueError('Unknown object point cloud encoder!')
     # else:
     #     object_encoder = None 
+    scene_encoder = single_object_encoder(geo_out_dim)
 
     # Optional, make a bbox encoder
     object_clf = None
@@ -395,6 +411,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     model = R2G(
         args=args,
         object_encoder=object_encoder,
+        scene_encoder = scene_encoder,
         # language_encoder=lang_encoder,
         # graph_encoder=graph_encoder,
         object_clf=object_clf,

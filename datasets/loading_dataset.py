@@ -78,11 +78,75 @@ class ListeningDataset(Dataset):
         is_nr3d = ref['dataset'] == 'nr3d'
         if 'instruction' in ref.keys():
             instructions = []
-            for k, v in eval(str(ref['instruction'])).items():
-                instructions.append(((v.split()[-1]).split('/'))[-1].lower())
-            instructions.reverse()
+            instructions_mask = []
+            if "}}}}" in ref['instruction']:
+                if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0][-1] != "}":
+                    ins = eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0]+"}}}}")
+            elif "}}}" in ref['instruction']:
+                if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0][-1] != "}":
+                    ins =eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}')[0]+"}}}")
+            else:
+                ins =eval(str(ref['instruction']).split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0])
+            if not isinstance(ins, dict):
+                ins = ins[0]
+            keys = ['anchor', 'relation', 'target']
+            sub_keys = ['identity', 'attribute']
+            # print(ins)
+            for key in keys:
+                if key != 'relation':
+                    if key in ins.keys() and ins[key]!= 'null' and ins[key]!= '' and ins[key] is not None:
+                        if isinstance(ins[key][sub_keys[0]], dict):
+                            instructions.append(str(ins[key][sub_keys[0]].values())[1].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        elif sub_keys[0] in ins[key].keys() and ins[key][sub_keys[0]] is not None and ins[key][sub_keys[0]] != '':
+                            instructions.append(ins[key][sub_keys[0]].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        else:
+                            instructions.append('null')
+                            instructions_mask.append(0)
+                            
+                    if sub_keys[1] in ins[key].keys() and ins[key][sub_keys[0]] is not None and  ins[key][sub_keys[0]] != '':
+                        if  '0' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['0'], dict):
+                            instructions.append(str(ins[key][sub_keys[1]]['0'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        elif '0' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['0'] is not None and ins[key][sub_keys[1]]['0'] != '':
+                            instructions.append(ins[key][sub_keys[1]]['0'].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        else:
+                            instructions.append('null')
+                            instructions_mask.append(0)
+                        if '1' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['1'], dict):
+                            instructions.append(str(ins[key][sub_keys[1]]['1'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        elif '1' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['1'] is not None and ins[key][sub_keys[1]]['1'] != '':
+                            instructions.append(ins[key][sub_keys[1]]['1'].split()[0].split('-')[0].split('_')[0].lower())
+                            instructions_mask.append(int(instructions[-1]!='null'))
+                        else:
+                            instructions.append('null')
+                            instructions_mask.append(0)
+                    else:
+                        for i in range(3):
+                            instructions.append('null')
+                            instructions_mask.append(0)
+                else:
+                    if isinstance(ins[key], dict):
+                        instructions.append(str(ins[key].values()).split()[1].lower())
+                        instructions_mask.append(int(instructions[-1]!='null'))
+                    elif key in ins.keys() and ins[key] != 'null' and ins[key] is not None:
+                        if len(ins[key].split()) == 3:
+                            instructions.append(ins[key].split()[1].lower())
+                        else:
+                            instructions.append(ins[key].split()[0].lower())
+                        instructions_mask.append(int(instructions[-1]!='null'))
+                    else:
+                        instructions.append('null')
+                        instructions_mask.append(0)
+
+
+    
         instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
         instruction_tokens = np.array(instruction_tokens)
+        instructions_mask = np.array(instructions_mask)
         anchors_id = None
         anchor = None
         if 'anchor_ids' in ref.keys():
@@ -95,7 +159,7 @@ class ListeningDataset(Dataset):
             sr_type = ref['reference_type']
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens, instructions_mask
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -140,7 +204,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens = self.get_reference_data(index)
+        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, instruction_tokens, instructions_mask = self.get_reference_data(index)
         # Make a context of distractors
         context = self.prepare_distractors(scan, target, anchor)
 
@@ -176,6 +240,7 @@ class ListeningDataset(Dataset):
         res['scene_size'] = np.array(res['scene_size'])
 
         res['ins_token'] = instruction_tokens
+        res['ins_mask'] = instructions_mask
 
         
 
