@@ -140,7 +140,6 @@ class NSMCell(nn.Module):
             B: Batch size
         """
         batch_size, num_node, num_node_properties, dim = node_attr.shape[:4]
-
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
         # B x N x H
@@ -157,6 +156,7 @@ class NSMCell(nn.Module):
                 )# B x P x N x H -> B x N x H 
             )
         )
+
 
         
 
@@ -238,6 +238,7 @@ class NSM(nn.Module):
         )#300, 5+1, 16
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
+        self.weight = nn.Parameter(torch.eye(input_size), requires_grad = True)
         # self.anchor_clf = instruction_clf
         # self.relation_clf = relation_clf
         # self.target_clf = language_clf        
@@ -331,7 +332,7 @@ class NSM(nn.Module):
         # # Simulate execution of finite automaton
         for ins_id, instruction in enumerate(instructions[:, :].unbind(1)):        # B x embedding_size
             # calculate intructions' property similarities(both node and relation)
-            instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
+            instruction_prop = F.softmax(instruction @ self.weight @ property_embeddings.T, dim=1)  # B x D(L+2)
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # distribution = F.softmax(distribution, dim = -1)

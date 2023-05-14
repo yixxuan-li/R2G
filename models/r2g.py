@@ -192,9 +192,8 @@ class R2G(nn.Module):
 
 
 
-
-        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), nattr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
+        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), nattr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         # edge_features = torch.cat([batch['edge_distance'], batch['edge_vector'], batch['edge_touch']], dim=-1)
         edge_prob = edge_prob_logits = None
         # B x N x N x prob_softmax   * probmax x embedding     ->     B X N X N X onehot_dim -> B X N X N X embedding, (B * n * n * 300)
@@ -328,7 +327,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     attribute = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short', 'curve']
     attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
 
-    property_semantic = ['identity', 'color', 'function', 'attribute' 'relations'] # 4 properties, NSM: L + 2, L =1
+    property_semantic = ['identity', 'color', 'function', 'attribute', 'relations'] # 4 properties, NSM: L + 2, L =1
     # property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
