@@ -174,10 +174,10 @@ class R2G(nn.Module):
         if self.object_semantic_filter_index is not None:
             object_semantic_prob = F.softmax(result['class_logits'][:, :, self.object_semantic_filter_index], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
         else:
-            # object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
-            # function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
-            object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
-            function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
+            function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            # object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
+            # function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
 
         color_onehot = torch.Tensor(batch['color_onehot']).cuda()   # B X N X one-hot, (B * 52 * 13)
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
@@ -187,13 +187,13 @@ class R2G(nn.Module):
         lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
                                         obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
                                         obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
-        node_attr_logits = torch.cat([ls_logits.float(), tl_logits.float(), batch['mc_attr'], batch['tb_attr'], F.softmax(lr_logits, dim = -1), losh_logits.float(), F.softmax(curve_logits, dim = -1)[:, :, 0].unsqueeze(-1)], dim =-1)
-        node_attr = node_attr_logits @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
+        attr_logits = torch.cat([ls_logits.float(), tl_logits.float(), batch['mc_attr'], batch['tb_attr'], F.softmax(lr_logits, dim = -1), losh_logits.float(), F.softmax(curve_logits, dim = -1)[:, :, 0].unsqueeze(-1)], dim =-1)
+        nattr = attr_logits @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
 
 
 
 
-        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
+        node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), nattr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
         # edge_features = torch.cat([batch['edge_distance'], batch['edge_vector'], batch['edge_touch']], dim=-1)
         edge_prob = edge_prob_logits = None
@@ -203,8 +203,8 @@ class R2G(nn.Module):
             #          B x N x N x k       K x embedding 
             edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[2]:]
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
-            # edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            # edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             # edge_prob_logits = (SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'])).cuda() # Bx N x N xk
             #          B x N x N x k       K x embedding 
             # edge_attr = F.softmax(edge_prob_logits, dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
@@ -328,7 +328,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     attribute = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short', 'curve']
     attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
 
-    property_semantic = ['identity', 'color', 'function', 'relations'] # 4 properties, NSM: L + 2, L =1
+    property_semantic = ['identity', 'color', 'function', 'attribute' 'relations'] # 4 properties, NSM: L + 2, L =1
     # property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
