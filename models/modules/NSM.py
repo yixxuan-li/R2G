@@ -205,17 +205,23 @@ class NSMCell(nn.Module):
                 dim = 1 
             )
         
+        if ins_id  != 3:
+            next_distribution = next_distribution_states  #(B x N)
+            # next_distribution = next_distribution * distribution
+        elif ins_id  == 3:
+            next_distribution = next_distribution_relations#(B X N)        
+
             
         # Compute next distribution
         # B x N
         if ins_id == 6:
-            next_distribution = distribution * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node)
+            final_distribution = next_distribution * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node) + distribution
         elif ins_id == 3:
-            next_distribution = next_distribution_relations * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node)  + distribution * (1 - instructions_mask[:,ins_id]).unsqueeze(-1).expand(batch_size, num_node)   #(B X N)
+            final_distribution = next_distribution * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node)  + distribution * (1 - instructions_mask[:,ins_id]).unsqueeze(-1).expand(batch_size, num_node)   #(B X N)
         else: 
-            next_distribution = F.softmax(distribution * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node), dim =-1)
+            final_distribution = F.softmax( next_distribution * instructions_mask[:,ins_id].unsqueeze(-1).expand(batch_size, num_node) + distribution, dim =-1)
                                           
-        return next_distribution
+        return final_distribution
 
 
 

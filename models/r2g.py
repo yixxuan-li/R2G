@@ -185,7 +185,8 @@ class R2G(nn.Module):
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
         color_semantic_prob = color_onehot @ concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]]
 
-        ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, batch['gt_class'], batch['object_mask'], batch['context_size'])
+        # ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, batch['gt_class'], batch['object_mask'], batch['context_size'])
+        ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, F.softmax(result['class_logits'], dim =-1), batch['object_mask'], batch['context_size'])
         lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
                                         obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
                                         obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk

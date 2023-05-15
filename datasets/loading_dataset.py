@@ -150,7 +150,6 @@ class ListeningDataset(Dataset):
                         instructions_mask.append(0)
 
 
-
     
         instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
         instruction_tokens = np.array(instruction_tokens)
