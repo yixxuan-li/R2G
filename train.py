@@ -24,6 +24,7 @@ from models.r2g import create_r2g_net
 from utils import single_epoch_train, evaluate_on_dataset, load_state_dicts, save_state_dicts, save_predictions_for_visualization
 from datasets.utils import dataset_to_dataloader
 from utils import GradualWarmupScheduler
+import os
 
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 
@@ -55,8 +56,14 @@ if __name__ == '__main__':
             if args.obj_cls_alpha > 0:
                 info += ', Object-Clf-Acc: {:.4f}'.format(meters[phase + '_object_cls_acc'])
 
-            if args.lang_cls_alpha > 0:
+            if args.target_cls_alpha > 0:
                 info += ', Text-Clf-Acc: {:.4f}'.format(meters[phase + '_txt_cls_acc'])
+            
+            if args.relation_cls_alpha > 0:
+                info += ', Relation-Clf-Acc: {:.4f}'.format(meters[phase + '_relation_cls_acc'])
+
+            if args.anchor_cls_alpha > 0:
+                info += ', Anchor-Clf-Acc: {:.4f}'.format(meters[phase + '_anchor_cls_acc'])
 
             logger.info(info)
             logger.info('{}: Epoch-time {:.3f}'.format(phase, timings[phase]))
@@ -126,20 +133,20 @@ if __name__ == '__main__':
         criteria['class_logits'] = nn.CrossEntropyLoss(ignore_index=class_to_idx['pad']).to(device)
 
     # # Target-in-language guessing
-    if args.lang_cls_alpha > 0:
-        criteria['lang_logits'] = nn.CrossEntropyLoss().to(device)
+    if args.target_cls_alpha > 0:
+        criteria['target_logits'] = nn.CrossEntropyLoss().to(device)
 
-    if args.instruction_cls_alpha > 0:
-        criteria['instruction_logits'] = nn.CrossEntropyLoss().to(device)
+    if args.anchor_cls_alpha > 0:
+        criteria['anchor_logits'] = nn.CrossEntropyLoss().to(device)
 
 
     if args.self_supervision_alpha > 0:
         print('Adding a self-supervised loss.')
         criteria['self_sv_logits'] = My_Loss().to(device)
         
-    if args.language_relation_alpha > 0:
+    if args.relation_cls_alpha > 0:
         print("Adding language-relation-pred loss.")
-        criteria['self_language_relation_logits'] = nn.CrossEntropyLoss().to(device)
+        criteria['relation_logits'] = nn.CrossEntropyLoss().to(device)
         
     # Prepare the Listener
     n_classes = len(class_to_idx) - 1  # -1 to ignore the <pad> class

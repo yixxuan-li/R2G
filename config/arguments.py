@@ -64,25 +64,28 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--init-lr', type=float, default=0.0005, help='learning rate for training.')
     parser.add_argument('--patience', type=int, default=70, help='if test-acc does not improve for patience consecutive'
                                                                  'epoch, stop training.')
-
+    parser.add_argument('--debug', type=str2bool, help='learning rate for training.')
+    parser.add_argument('--use-GT', type=str2bool, help='training with GT')
     #
     # Model arguments
     #
+    parser.add_argument('--model-attr', type = str2bool, default=False, help='True to use attribute module')
     parser.add_argument('--object-encoder', type=str, default='pnet_pp', choices=['pnet_pp', 'pnet', 'pointnext'])
     parser.add_argument('--relation_pred', type = str2bool, default=False, help='True to use relation_pred module')
     parser.add_argument('--relation_retrieval', type = str2bool, default=False, help='True to use relation_retrieval module')
-
+    parser.add_argument('--multi-attr', type = str2bool, default=False, help='True to use mullti attr')
+    parser.add_argument('--attr-pred', type = str2bool, default=False, help='True to pred attr')
     parser.add_argument('--object-latent-dim', type=int, default=128)
     parser.add_argument('--language-latent-dim', type=int, default=128)
     parser.add_argument('--word-embedding-dim', type=int, default=300)
 
-    parser.add_argument('--lang-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing the target via '
+    parser.add_argument('--target-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing the target via '
                                                                           'language only is added.')
     parser.add_argument('--obj-cls-alpha', type=float, default=0.5, help='if > 0 a loss for guessing for each segmented'
                                                                          ' object its class type is added.')
-    parser.add_argument('--language-relation-alpha', type=float, default=0.0, help='if > 0 a loss for guessing for instruction'
+    parser.add_argument('--relation-cls-alpha', type=float, default=0.0, help='if > 0 a loss for guessing for instruction'
                                                                          ' relation its class type is added.')
-    parser.add_argument('--instruction-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing for instruction'
+    parser.add_argument('--anchor-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing for instruction'
                                                                          ' object its class type is added.')
     # parser.add_argument('--tar-anch-alpha', type=float, default=0.3, help='if > 0 a loss for guessing for each segmented'
     #                                                                      ' object its class type is added.')

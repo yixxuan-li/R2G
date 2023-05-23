@@ -181,7 +181,7 @@ def make_batch_keys(args, extras=None):
     if args.obj_cls_alpha > 0:
         batch_keys.append('class_labels')
 
-    if args.lang_cls_alpha > 0:
+    if args.target_cls_alpha > 0:
         batch_keys.append('target_class')
 
     return batch_keys
@@ -204,11 +204,11 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     obj_loss_mtr = AverageMeter()
     ref_acc_mtr = AverageMeter()
     cls_acc_mtr = AverageMeter()
-    txt_acc_mtr = AverageMeter()
-    instr_acc_mtr = AverageMeter()
-    instr_loss_mtr = AverageMeter()
-    lang_relation_acc_mtr = AverageMeter()
-    lang_relation_loss_mtr = AverageMeter()
+    target_acc_mtr = AverageMeter()
+    anchor_acc_mtr = AverageMeter()
+    anchor_loss_mtr = AverageMeter()
+    relation_acc_mtr = AverageMeter()
+    relation_loss_mtr = AverageMeter()
 
     # Set the model in training mode
     model.train()
@@ -221,7 +221,6 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
         if args.object_encoder == 'pnet':
             batch['objects'] = batch['objects'].permute(0, 1, 3, 2)
-
         # Forward pass
         res = model(batch)
 
@@ -256,23 +255,23 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             cls_acc_mtr.update(cls_b_acc, batch_size)
             obj_loss_mtr.update(all_losses['obj_clf_loss'].item(), batch_size)
 
-        if args.lang_cls_alpha > 0:
-            batch_guess = torch.argmax(res['lang_logits'], -1)
+        if args.target_cls_alpha > 0:
+            batch_guess = torch.argmax(res['target_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['target_class']).double())
-            txt_acc_mtr.update(cls_b_acc, batch_size)
+            target_acc_mtr.update(cls_b_acc, batch_size)
 
-        if args.instruction_cls_alpha > 0:
-            batch_guess = torch.argmax(res['instruction_logits'], -1)
+        if args.anchor_cls_alpha > 0:
+            batch_guess = torch.argmax(res['anchor_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
-            instr_acc_mtr.update(cls_b_acc, batch_size)
-            instr_loss_mtr.update(all_losses['instruction_loss'].item(), batch_size)
+            anchor_acc_mtr.update(cls_b_acc, batch_size)
+            anchor_loss_mtr.update(all_losses['anchor_loss'].item(), batch_size)
 
         
-        if args.language_relation_alpha > 0:
-            batch_guess = torch.argmax(res['lang_relation_logits'], -1)
+        if args.relation_cls_alpha > 0:
+            batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
-            lang_relation_acc_mtr.update(cls_b_acc, batch_size)
-            lang_relation_loss_mtr.update(all_losses['lang_rela_loss'].item(), batch_size)            
+            relation_acc_mtr.update(cls_b_acc, batch_size)
+            relation_loss_mtr.update(all_losses['relation_loss'].item(), batch_size)            
 
 
     metrics['train_total_loss'] = total_loss_mtr.avg
@@ -280,11 +279,11 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
     metrics['train_referential_acc'] = ref_acc_mtr.avg
     metrics['train_object_cls_acc'] = cls_acc_mtr.avg
-    metrics['train_txt_cls_acc'] = txt_acc_mtr.avg
-    metrics['train_instr_cls_acc'] = instr_acc_mtr.avg
-    metrics['train_instr_loss'] = instr_loss_mtr.avg
-    metrics['train_lang_relation_loss'] = lang_relation_loss_mtr.avg
-    metrics['train_lang_realtion_acc'] = lang_relation_acc_mtr.avg
+    metrics['train_target_cls_acc'] = target_acc_mtr.avg
+    metrics['train_anchor_cls_acc'] = anchor_acc_mtr.avg
+    metrics['train_anchor_loss'] = anchor_loss_mtr.avg
+    metrics['train_relation_loss'] = relation_loss_mtr.avg
+    metrics['train_relation_acc'] = relation_acc_mtr.avg
 
     return metrics
 
@@ -311,32 +310,32 @@ def compute_losses(batch, res, criterion_dict, args):
     else:
         total_loss = criterion(logits, batch['target_pos'])
     referential_loss = total_loss.item()
-    obj_clf_loss = lang_clf_loss = instruction_clf_loss  = lang_rela_loss = 0
+    obj_clf_loss = target_clf_loss = anchor_clf_loss  = relation_cls_loss = 0
 
     if args.obj_cls_alpha > 0:
         criterion = criterion_dict['class_logits']
         obj_clf_loss = criterion(res['class_logits'].transpose(2, 1), batch['class_labels'])
         total_loss += obj_clf_loss * args.obj_cls_alpha
 
-    if args.lang_cls_alpha > 0:
-        criterion = criterion_dict['lang_logits']
-        lang_clf_loss = criterion(res['lang_logits'], batch['target_class'].long())
-        total_loss += lang_clf_loss * args.lang_cls_alpha
+    if args.target_cls_alpha > 0:
+        criterion = criterion_dict['target_logits']
+        target_clf_loss = criterion(res['target_logits'], batch['target_class'].long())
+        total_loss += target_clf_loss * args.lang_cls_alpha
 
-    if args.instruction_cls_alpha > 0:
-        criterion = criterion_dict['instruction_logits']
-        instruction_clf_loss = criterion(res['instruction_logits'], batch['anchor_class'].cuda())
-        total_loss += instruction_clf_loss * args.lang_cls_alpha
+    if args.anchor_cls_alpha > 0:
+        criterion = criterion_dict['anchor_logits']
+        anchor_clf_loss = criterion(res['anchor_logits'], batch['anchor_class'].cuda())
+        total_loss += anchor_clf_loss * args.anchor_cls_alpha
 
         
-    if args.language_relation_alpha > 0:
-        criterion = criterion_dict['self_language_relation_logits']
-        lang_rela_loss = criterion(res['lang_relation_logits'], batch['sr_type'].long().cuda())
-        total_loss += lang_rela_loss * args.language_relation_alpha
+    if args.relation_cls_alpha > 0:
+        criterion = criterion_dict['relation_logits']
+        relation_cls_loss = criterion(res['relation_logits'], batch['sr_type'].long().cuda())
+        total_loss += relation_cls_loss * args.relation_cls_alpha
         
     return {'total_loss': total_loss, 'referential_loss': referential_loss,
-            'obj_clf_loss': obj_clf_loss, 'lang_clf_loss': lang_clf_loss, 
-            'instruction_loss': instruction_clf_loss, 'lang_rela_loss': lang_rela_loss}
+            'obj_clf_loss': obj_clf_loss, 'lang_clf_loss': target_clf_loss, 
+            'instruction_loss': anchor_clf_loss, 'lang_rela_loss': relation_cls_loss}
 
 
 @torch.no_grad()
@@ -348,11 +347,11 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
     obj_loss_mtr = AverageMeter()
     ref_acc_mtr = AverageMeter()
     cls_acc_mtr = AverageMeter()
-    txt_acc_mtr = AverageMeter()
-    instr_acc_mtr = AverageMeter()
-    instr_loss_mtr = AverageMeter()
-    lang_relation_acc_mtr = AverageMeter()
-    lang_relation_loss_mtr = AverageMeter()
+    target_acc_mtr = AverageMeter()
+    anchor_acc_mtr = AverageMeter()
+    anchor_loss_mtr = AverageMeter()
+    relation_acc_mtr = AverageMeter()
+    relation_loss_mtr = AverageMeter()
 
     # Set the model in training mode
     model.eval()
@@ -387,8 +386,6 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
         referential_loss_mtr.update(all_losses['referential_loss'], batch_size)
 
         predictions = torch.argmax(res['logits'], dim=1)
-        # print(predictions[:2])
-        # print("$$$$$$$$$$")
         guessed_correctly = torch.mean((predictions == target).double()).item()
         ref_acc_mtr.update(guessed_correctly, batch_size)
 
@@ -397,34 +394,34 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
             cls_acc_mtr.update(cls_b_acc, batch_size)
             obj_loss_mtr.update(all_losses['obj_clf_loss'].item(), batch_size)
 
-        if args.lang_cls_alpha > 0:
-            batch_guess = torch.argmax(res['lang_logits'], -1)
+        if args.target_cls_alpha > 0:
+            batch_guess = torch.argmax(res['target_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['target_class']).double())
-            txt_acc_mtr.update(cls_b_acc, batch_size)
+            target_acc_mtr.update(cls_b_acc, batch_size)
 
-        if args.instruction_cls_alpha > 0:
-            batch_guess = torch.argmax(res['instruction_logits'], -1)
+        if args.anchor_cls_alpha > 0:
+            batch_guess = torch.argmax(res['anchor_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
-            instr_acc_mtr.update(cls_b_acc, batch_size)
-            instr_loss_mtr.update(all_losses['instruction_loss'].item(), batch_size)
+            anchor_acc_mtr.update(cls_b_acc, batch_size)
+            anchor_loss_mtr.update(all_losses['anchor_loss'].item(), batch_size)
 
 
-        if args.language_relation_alpha > 0:
-            batch_guess = torch.argmax(res['lang_relation_logits'], -1)
+        if args.relation_cls_alpha > 0:
+            batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
-            lang_relation_acc_mtr.update(cls_b_acc, batch_size)
-            lang_relation_loss_mtr.update(all_losses['lang_rela_loss'].item(), batch_size)     
+            relation_acc_mtr.update(cls_b_acc, batch_size)
+            relation_loss_mtr.update(all_losses['relation_loss'].item(), batch_size)     
 
     metrics['test_total_loss'] = total_loss_mtr.avg
     metrics['test_referential_loss'] = referential_loss_mtr.avg
     metrics['test_obj_clf_loss'] = obj_loss_mtr.avg
     metrics['test_referential_acc'] = ref_acc_mtr.avg
     metrics['test_object_cls_acc'] = cls_acc_mtr.avg
-    metrics['test_txt_cls_acc'] = txt_acc_mtr.avg
-    metrics['test_instr_cls_acc'] = instr_acc_mtr.avg
-    metrics['test_instr_loss'] = instr_loss_mtr.avg
-    metrics['test_lang_relation_loss'] = lang_relation_loss_mtr.avg
-    metrics['test_lang_realtion_acc'] = lang_relation_acc_mtr.avg
+    metrics['test_target_cls_acc'] = target_acc_mtr.avg
+    metrics['test_anchor_cls_acc'] = anchor_acc_mtr.avg
+    metrics['test_anchor_loss'] = anchor_loss_mtr.avg
+    metrics['test_relation_loss'] = relation_loss_mtr.avg
+    metrics['test_relation_acc'] = relation_acc_mtr.avg
 
     return metrics
 
