@@ -161,9 +161,6 @@ class NSMCell(nn.Module):
         super(NSMCell, self).__init__()
         self.nonlinearity = nn.ELU()
 
-        # self.weight_node_properties = nn.Parameter(
-        #     torch.eye(input_size).unsqueeze(0).repeat(n_node_properties, 1, 1), requires_grad = True
-        # )
         self.weight_node_properties = nn.Parameter(
             torch.tensor(np.vstack([np.eye(input_size).reshape(1, input_size, input_size) for i in range(n_node_properties)]) ).to(torch.float32), requires_grad = True
         )
@@ -171,8 +168,6 @@ class NSMCell(nn.Module):
         self.weight_state_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
         self.weight_relation_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
         self.dropout = nn.Dropout(p=dropout)
-        # self.weighten_state = nn.Linear(input_size, 1)
-        # self.weighten_edge = nn.Linear(input_size, 1)
 
 
     def forward(
@@ -233,8 +228,8 @@ class NSMCell(nn.Module):
                     'b (n1 n2) h -> b n1 n2 h', n1 = num_node)
             )# B x N x N x H
         )
+
         # shift the attention to their most relavant neibors; B x N x H -> B x N
-        # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         next_distribution_states = F.softmax(rearrange(
                                                         torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)),
                                                         'b n 1 -> b n'
@@ -243,15 +238,6 @@ class NSMCell(nn.Module):
                                              dim =1
                                              )
 
-        # shift the attention to their most relavant edges;  B x N
-        # next_distribution_relations = F.softmax(
-        #     self.weighten_edge(
-        #         torch.sum(
-        #             edge_scores * distribution.view(batch_size, 1, -1, 1), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
-        #         ).squeeze(2) # B x N x 1 x H -> B x N x H 
-        #     ).squeeze(2),# B x N
-        #     dim = 1 
-        # )
         
         next_distribution_relations = F.softmax(
             rearrange(
@@ -265,14 +251,7 @@ class NSMCell(nn.Module):
             + node_mask,# B x N
             dim = 1 
         )
-        # Compute next distribution
-        # B x N
-        # next_distribution = F.softmax(
-        #  (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
-        #     + (1 - relation_prop_similarity).view(batch_size, 1)
-        #     * next_distribution_states),  #(B x N)
-        #     dim = 1
-        # )
+
         next_distribution = ( 
             torch.mul(repeat(relation_prop_similarity, 'b -> b n', n = num_node), next_distribution_relations)# (B) x (B X N)
             + torch.mul(repeat((1 - relation_prop_similarity), 'b -> b n', n = num_node), next_distribution_states))  #(B x N)
@@ -284,7 +263,14 @@ class NSMCell(nn.Module):
 
 ## NSM 
 class NSM(nn.Module):
-    def __init__(self, input_size: int, num_node_properties: int, num_instructions: int, description_hidden_size: int, dropout: float = 0.0):
+    def __init__(self,
+                 input_size: int, 
+                 num_node_properties: int, 
+                 num_instructions: int, 
+                 description_hidden_size: int, 
+                 dropout: float = 0.0,
+                 
+                 ):
         super(NSM, self).__init__()
 
         self.instructions_model = InstructionsModel(
