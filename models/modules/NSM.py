@@ -143,21 +143,6 @@ class NSMCell(nn.Module):
         #  which stand for the node and edge's relative of instruction
         # B x N x H
         if ins_id  == 0 or ins_id == 2:
-            # node_scores = self.dropout(
-            #     self.nonlinearity(
-            #         torch.sum(
-            #             # # B x P x 1 x 1
-            #             # node_prop_similarities.view(batch_size, -1, 1, 1)
-            #             # B x 1 x 1 x H
-            #             instruction.view(batch_size, 1, 1, -1)
-            #             # B x P x N x H
-            #             * node_attr.transpose(1, 2)
-            #             # P x H x H
-            #             @ self.weight_node_properties,
-            #             dim=1,
-            #         )# B x P x N x H -> B x N x H 
-            #     )
-            # )
             node_scores = self.dropout(
                 self.nonlinearity(
                     torch.sum(

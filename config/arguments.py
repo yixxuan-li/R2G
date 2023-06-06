@@ -90,6 +90,7 @@ def parse_arguments(notebook_options=None):
                                                                          ' is added.')
     parser.add_argument('--model-attr', type = bool, default = False, help = 'True to model object attributes')
     parser.add_argument('--multi_attr', type = bool, default = False, help = 'True to use multi-attributes')
+    parser.add_argument('--use-GT', type=bool, default = True, help='True to use GT')
     #
     # Misc arguments
     #
