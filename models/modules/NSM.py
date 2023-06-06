@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np
-
+from einops import rearrange, repeat
 from .utils import get_siamese_features
 
 
@@ -26,17 +26,21 @@ class Tagger(nn.Module):
             vocab: the concept vocabulary, D x embedding_size,(D: concept number)
             description: the description. B x l x embedding_size, l:description length,
         """
-        bts, length, h  = description.shape[:]
+        bts, length, h  = description.shape
         tokens = description #  B x l x embedding_size
         # calculate the similarity between description and concepts 
         # B x l x H, H x H, D+1 x H
         similarity = F.softmax(
-            (tokens @ self.weight.expand(bts, h, h)) @ (torch.cat([vocab, self.default_embedding.unsqueeze(0)], dim = 0 ).T).unsqueeze(0).repeat(bts, 1, 1),
+            torch.matmul(
+                        torch.matmul(tokens, repeat(self.weight, 'h1 h2 -> bts h1 h2', bts = bts)),\
+                        repeat(torch.cat([vocab, self.default_embedding.unsqueeze(0)], dim = 0 ), 'd h -> b h d', b = bts)
+                        ),
             dim=2,
-        ) #B x l x D+1
+        )
         # transform the description based on the concept
-        #                   B x l x 1        B x l x H    B x l x D             D x H
-        concept_based = similarity[:, :, -1:] * tokens + similarity[:, :, :-1] @ vocab # B * l * embedding_size
+        #                                B x l x 1                                  B x l x H                 B x l x D             D x H
+        concept_based = torch.mul(repeat(similarity[:, :, -1], 'b l -> b l h', h =h), tokens) \
+                        + torch.matmul(similarity[:, :, :-1],  repeat(vocab, 'd h -> b d h', b = bts)) # B * l * embedding_size
         return concept_based
 
 
@@ -77,14 +81,14 @@ class InstructionsModel(nn.Module):
         description: B x l x H
         """
         tagged_description = self.tagger(vocab, description) # B * l * embedding_size
-        _, (encoded, _) = self.encoder(tagged_description.transpose(0,1))  # get last hidden
+        _, (encoded, _) = self.encoder(rearrange(tagged_description, 'b l h -> l b h'))  # get last hidden
         # B x LSTM-encoder-hidden-size
-        encoded = encoded.squeeze(dim=0)
+        encoded = rearrange(encoded, '1 b h -> b h')
         # instruction_length x B x LSTM-encoder-hidden-size
-        hidden, _ = self.decoder(encoded.expand(self.n_instructions, -1, -1))
-        hidden = hidden.transpose(0, 1) # B x instruction_length x embedding_size
-        attention = self.softmax(hidden @ tagged_description.transpose(1, 2))   #B x instruction_length x l
-        instructions = attention @ tagged_description   # B x instruction_length x embedding_size
+        hidden, _ = self.decoder(repeat(encoded, 'b h -> n b h', n = self.n_instructions))
+        hidden = rearrange(hidden, 'n b h -> b n h') # B x instruction_length x embedding_size
+        attention = self.softmax(torch.matmul(hidden, rearrange(tagged_description, 'b l h -> b h l')))   #B x instruction_length x l
+        instructions = torch.matmul(attention, tagged_description)    # B x instruction_length x embedding_size
         return instructions, encoded
 
 
@@ -101,16 +105,10 @@ class NSMCell(nn.Module):
         self.weight_node_properties = nn.Parameter(
             torch.tensor(np.vstack([np.eye(input_size).reshape(1, input_size, input_size) for i in range(n_node_properties)]) ).to(torch.float32), requires_grad = True
         )
-        # self.weight_node_properties2 = nn.Parameter(
-        #     torch.rand(n_node_properties, input_size, input_size), requires_grad = True
-        # )
         self.weight_edge = nn.Parameter(torch.eye(input_size), requires_grad = True)
         self.weight_state_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
-        # self.weight_state_score2 = nn.Parameter(torch.rand(input_size), requires_grad = True)
         self.weight_relation_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
         self.dropout = nn.Dropout(p=dropout)
-        # self.weighten_state = nn.Linear(input_size, 1)
-        # self.weighten_edge = nn.Linear(input_size, 1)
 
 
     def forward(
@@ -144,7 +142,7 @@ class NSMCell(nn.Module):
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
         # B x N x H
-        if ins_id  == 0:
+        if ins_id  == 0 or ins_id == 2:
             # node_scores = self.dropout(
             #     self.nonlinearity(
             #         torch.sum(
@@ -163,106 +161,59 @@ class NSMCell(nn.Module):
             node_scores = self.dropout(
                 self.nonlinearity(
                     torch.sum(
-                            F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-                            # B x P x N x H
-                            * node_attr.transpose(1, 2)
-                            # P x H x H -> 1 x P x H x H -> B x P x H x H
-                            @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim), dim = 2),
+                            F.normalize(
+                                torch.mul(
+                                    repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
+                                    torch.matmul(
+                                        torch.mul(
+                                            repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
+                                            rearrange(node_attr, 'b n p h -> b p n h')
+                                            ),
+                                        repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
+                                    )
+                                )
+                            ),
                         dim=1,
                     )# B x P x N x H -> B x N x H 
                 )
             )
-            # node_scores = self.dropout(
-            #     self.nonlinearity(
-            #         torch.sum(
-            #                 F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-            #                 # B x P x N x H
-            #                 * node_attr.transpose(1, 2)),
-            #             dim=1,
-            #         )# B x P x N x H -> B x N x H 
-            #     )
-            # )
-        if ins_id == 2:
-        #     node_scores = self.dropout(
-        #         self.nonlinearity(
-        #             torch.sum(
-        #                 # # B x P x 1 x 1
-        #                 # node_prop_similarities.view(batch_size, -1, 1, 1)
-        #                 # B x 1 x 1 x H
-        #                 instruction.view(batch_size, 1, 1, -1)
-        #                 # B x P x N x H
-        #                 * node_attr.transpose(1, 2)
-        #                 # P x H x H
-        #                 @ self.weight_node_properties2,
-        #                 dim=1
-        #             )# B x P x N x H -> B x N x H 
-        #         )
-        #     )
-            node_scores = self.dropout(
-                self.nonlinearity(
-                    torch.sum(
-                            F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-                            # B x P x N x H
-                            * node_attr.transpose(1, 2)
-                            # P x H x H -> 1 x P x H x H -> B x P x H x H
-                            @ self.weight_node_properties.unsqueeze(0).expand(batch_size, num_node_properties, dim, dim), dim = 2),
-                        dim=1,
-                    )# B x P x N x H -> B x N x H 
-                )
-            )
-            # node_scores = self.dropout(
-            #     self.nonlinearity(
-            #         torch.sum(
-            #                 F.normalize(instruction.view(batch_size, 1, 1, -1).expand(batch_size, num_node_properties, num_node, dim)
-            #                 # B x P x N x H
-            #                 * node_attr.transpose(1, 2)),
-            #             dim=1,
-            #         )# B x P x N x H -> B x N x H 
-            #     )
-            # )
+
 
         if ins_id %2 != 0:
-            # E x H
-            # edge_scores = self.dropout(
-            #     self.nonlinearity(
-            #         (# B x 1 x H
-            #         instruction.view(batch_size, 1, -1)
-            #         # B x (N x N) x H
-            #         * edge_attr.view(batch_size, num_node*num_node, -1)
-            #         # H x H
-            #         @ self.weight_edge.unsqueeze(0).repeat(batch_size, 1, 1)).view(batch_size, num_node, num_node, -1)
-            #     )# B x N x N x H
-            # )
             edge_scores = self.dropout(
                 self.nonlinearity(
-                        F.normalize(# B x 1 x H
-                        instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
-                        # B x (N x N) x H
-                        * edge_attr.view(batch_size, num_node*num_node, -1)
-                        # H x H -> B x H x H
-                        @ self.weight_edge.unsqueeze(0).expand(batch_size, dim, dim), dim = 1).view(batch_size, num_node, num_node, -1)
+                                rearrange(
+                                    F.normalize(
+                                        torch.matmul(
+                                            torch.mul(
+                                                repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
+                                                rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
+                                            ),
+                                            repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
+                                        )
+                                    ), 
+                                    'b (n1 n2) h -> b n1 n2 h', n1 = num_node
+                                )
                 )# B x N x N x H
             )
-            # edge_scores = self.dropout(
-            #     self.nonlinearity(
-            #             F.normalize(# B x 1 x H
-            #             instruction.view(batch_size, 1, -1).expand(batch_size, num_node*num_node, dim)
-            #             # B x (N x N) x H
-            #             * edge_attr.view(batch_size, num_node*num_node, -1)
-            #             ).view(batch_size, num_node, num_node, -1)
-            #     )# B x N x N x H
-            # )            
-            # print(tmp[0,0, :2])
+
             
         # shift the attention to their most relavant neibors; B x N x H -> B x N
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         # if ins_id % 2 == 0:
         #     next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2), dim =1)
         if ins_id == 0:
-            next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1).expand(batch_size, dim, 1)).squeeze(2) + node_mask, dim =1)
+            next_distribution_states = F.softmax(
+                rearrange(
+                    torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
+                ) + node_mask,
+                dim = 1
+            )
         if ins_id == 2:
-            next_distribution_states = (node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2)
-            
+            next_distribution_states = rearrange(
+                    torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
+                )
+    
             
         # shift the attention to their most relavant edges;  B x N
         # next_distribution_relations = F.softmax(
@@ -348,7 +299,8 @@ class NSM(nn.Module):
         relation_vocab = None,
         context_size = None,
         lang_mask = None,
-        language_len = None
+        language_len = None,
+        concept_vocab_set = None
     ):
         """
         Dimensions:
@@ -376,67 +328,35 @@ class NSM(nn.Module):
         instructions, encoded_questions = self.instructions_model(
             concept_vocab, description
         )
-        
-        ## constrain the 3 instructions
-        anchor_logits = None
-        anchor_instruction = None
-        if self.anchor_clf is not None:
-            anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-            anchor_instruction = anchor_logits @ concept_vocab[:concept_vocab_seg[0]]
-
-        lang_relation_logits = None
-        relation_instruction = None
-        if self.relation_clf is not None:
-            lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
-            
-            # generate new instruction based on relation predicted
-            #                   B x n_relations        n_relations x hidden_dim -> B x  hidden_dim
-            relation_instruction = lang_relation_logits @ concept_vocab[concept_vocab_seg[-2]:]
-            # instructions[:, 1, :] = new_instruction
-            
-        target_logits = None
-        target_instruction = None
-        if self.target_clf is not None:
-            target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-            target_instruction = target_logits @ concept_vocab[:concept_vocab_seg[0]]
-            
-        
-
-        #  B x LSTM-encoder-hidden-size -> B x num_node x LSTM-encoder-hidden-size
-        # extended_encoded_questions = encoded_questions.view(batch_size, 1, -1).repeat(1, num_node, 1)
+    
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)
         # edge_attr=self.dropout(edge_attr)
 
         # Initialize distribution over the nodes, size: batch_size x num_node: num of node
-        # distribution = F.softmax(torch.rand(batch_size, num_node), dim =1).cuda()
         
         #                       B x N                           B x 1
-        distribution = torch.ones(batch_size, num_node).cuda() * (1 / context_size).unsqueeze(1)
+        distribution =torch.ones(batch_size, num_node).cuda() * (1 / context_size).unsqueeze(1)
         
         distribution = F.softmax(distribution + node_mask, dim = -1)
         
         
-        # distribution = F.softmax(get_siamese_features(self.dis, torch.cat([node_attr.view(batch_size, num_node, -1), extended_encoded_questions], dim =-1), torch.stack), dim =-1)
         prob = distribution.unsqueeze(1)
         # # Simulate execution of finite automaton
         # for ins_id, instruction in enumerate(instructions[:, :].unbind(1)):        # B x embedding_size
         for ins_id in range(3):
             # calculate intructions' property similarities(both node and relation)
             # instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
-            # node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
-            # relation_prop_similarity = instruction_prop[:, -1]   # B 
-            # distribution = F.softmax(distribution, dim = -1)
+            instruction_prop = torch.zeros([batch_size, num_property]).cuda()
+            if ins_id == 0 or ins_id == 2:
+                instruction_prop[:, :-1] = 1
+            else:
+                instruction_prop[:, -1] = 1
+            node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
+            relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN
             instruction = instructions[:, :].unbind(1)[ins_id]
-            if ins_id == 0 and anchor_instruction is not None:
-                instruction = anchor_instruction
-            if ins_id == 1 and relation_instruction is not None:
-                instruction = relation_instruction
-            if ins_id == 2 and target_instruction is not None:
-                instruction = target_instruction
-                t_distribution = distribution
                 
                 
             distribution = self.nsm_cell(
@@ -445,36 +365,14 @@ class NSM(nn.Module):
                 instruction,
                 distribution,
                 ins_id,
-                node_mask = node_mask
-                # node_prop_similarities,
-                # relation_prop_similarity
+                node_mask = node_mask,
+                node_prop_similarities = node_prop_similarities,
+                relation_prop_similarity = relation_prop_similarity
             )
-            prob = torch.cat([prob, distribution.unsqueeze(1)], dim =1)
+            prob = torch.cat([prob, rearrange(distribution, 'b n -> b 1 n')], dim =1)
             
-            # if ins_id == 1:
-            #     distribution = distribution + t_distribution
             
         all_instruction = instructions[:, :].unbind(1)
-        # print(distribution[:2])
-        # arrge = node_attr.view(batch_size, num_node, -1)
-        """
-        # cauculate the final description's node property relation
-        # instructions: B x instruction_length x embedding_size; property_embeddings: D x H
-        # final_node_prop_similarities = F.softmax(
-        #     instructions[:, -1] @ property_embeddings.T, dim=1
-        # )[:, :-1]   #B x P;
-        
-        # update the node feature based on final description and final distribution
-        # B x H           # B x N
-        # aggregated = distribution.view(batch_size, num_node, 1) * torch.sum(
-        #         final_node_prop_similarities.view(batch_size, 1, num_property -1, 1)# B x 1 x P x 1
-        #         * node_attr,    #B x N x P x H
-        #         dim=2,
-        #     ).squeeze(2)# B x N x H
-        """
-        
-        # predictions = self.classifier(torch.hstack((encoded_questions, aggregated)))
-        # return torch.cat((extended_encoded_questions, aggregated), dim = -1)
-        # final_feature = torch.cat([extended_encoded_questions, arrge ], dim =-1)
-        return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
+
+        return distribution, encoded_questions, prob, all_instruction, None, None, None
 

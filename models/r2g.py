@@ -33,13 +33,16 @@ sr_index = [[9, 10, 130, 148, 193, 232, 246, 250, 252, 274, 298, 329, 361, 447, 
 
 
 
-#183
+# nr3d
 object_class1 = ['table', 'airplane', 'alarm', 'clock', 'armchair', 'mobile', 'backpack', 'bag', 'beans', 'ball', 'holder', 'bananas', 'banister', 'banner', 'bar', 'barricade', 'basket', 'products', 'walls', 'bathrobe', 'cabinet', 'counter', 'stall', 'door', 'vanity', 'bathtub', 'jar', 'beachball', 'chair', 'bear', 'bed', 'bottles', 'bench', 'bicycle', 'lock', 'pump', 'bin', 'blackboard', 'blanket', 'blinds', 'block', 'board', 'boards', 'boat', 'boiler', 'book', 'rack', 'books', 'bookshelf', 'bookshelves', 'boots', 'bottle', 'bowl', 'box', 'boxes', 'paper', 'bar', 'briefcase', 'broom', 'bucket', 'board', 'bed', 'cabinet', 'door', 'doors', 'cabinets', 'cable', 'calendar', 'camera', 'can', 'candle', 'canopy', 'car', 'card', 'cardboard', 'carpet', 'carseat', 'cart', 'carton', 'case', 'bottles', 'box', 'case', 'ceiling', 'fan', 'light', 'chain', 'chair', 'chandelier', 'station', 'chest', 'clock', 'closet', 'ceiling', 'door', 'doorframe', 'doors', 'floor', 'rod', 'shelf', 'wall', 'walls', 'cloth', 'clothes', 'dryer', 'dryers', 'hanger', 'hangers', 'clothing', 'rack', 'coat', 'rack', 'coatrack', 'box', 'kettle', 'maker', 'table', 'column', 'bin', 'tower', 'bottle', 'container', 'controller', 'pan', 'pot', 'copier', 'costume', 'couch', 'cushions', 'counter', 'box', 'crate', 'crib', 'cup', 'cups', 'curtain', 'curtains', 'cushion', 'board', 'board', 'decoration', 'desk', 'lamp', 'bin', 'table', 'rack', 'dishwasher', 'bottle', 'dispenser', 'display', 'case', 'rack', 'divider', 'doll', 'dollhouse', 'dolly', 'door', 'doorframe', 'doors', 'drawer', 'rack', 'dresser', 'set', 'sheets', 'rack', 'bag', 'dumbbell', 'dustpan', 'easel', 'panel', 'elevator', 'button', 'machine', 'table', 'envelope', 'bike', 'machine', 'sign', 'fan', 'faucet', 'cabinet', 'alarm', 'extinguisher', 'fireplace', 'flag', 'flops', 'floor', 'stand', 'flowerpot', 'chair', 'chairs', 'ladder', 'table', 'folder', 'bag', 'container', 'display', 'table', 'footrest', 'footstool', 'frame', 'pan', 'furnace', 'furniture', 'box', 'futon', 'door', 'bag', 'doors', 'globe', 'bag', 'bar', 'bag', 'guitar', 'case', 'brush', 'dryer', 'hamper', 'dryer', 'rail', 'dispenser', 'towel', 'bar', 'handrail', 'hanging', 'hat', 'hatrack', 'headboard', 'headphones', 'heater', 'helmet', 'hose', 'hoverboard', 'humidifier', 'bag', 'case', 'ipad', 'iron', 'board', 'jacket', 'jar', 'kettle', 'keyboard', 'piano', 'apron', 'cabinet', 'cabinets', 'counter', 'island', 'mixer', 'block', 'ladder', 'lamp', 'base', 'laptop', 'bag', 'basket', 'detergent', 'hamper', 'ledge', 'legs', 'light', 'switch', 'bed', 'loofa', 'luggage', 'rack', 'stand', 'box', 'machine', 'magazine', 'rack', 'mail', 'tray', 'mailbox', 'mailboxes', 'map', 'chair', 'mat', 'mattress', 'medal', 'bag', 'metronome', 'microwave', 'fridge', 'mirror', 'doors', 'monitor', 'mouse', 'bottle', 'mug', 'book', 'stand', 'gun', 'lamp', 'nightstand', 'notepad', 'object', 'chair', 'cabinet', 'organizer', 'shelf', 'ottoman', 'oven', 'mitt', 'painting', 'shelf', 'wall', 'walls', 'pants', 'paper', 'bag', 'cutter', 'organizer', 'towel', 'dispenser', 'roll', 'tray', 'papers', 'person', 'photo', 'piano', 'bench', 'picture', 'pictures', 'pillar', 'pillow', 'pillows', 'table', 'pipe', 'pipes', 'pitcher', 'boxes', 'plant', 'bin', 'container', 'containers', 'bin', 'plate', 'plates', 'plunger', 'podium', 'table', 'poster', 'cutter', 'printer', 'tube', 'pot', 'plant', 'outlet', 'strip', 'printer', 'projector', 'screen', 'purse', 'quadcopter', 'rack', 'stand', 'radiator', 'rail', 'railing', 'hood', 'chair', 'bin', 'refrigerator', 'remote', 'cooker', 'rod', 'poster', 'roomba', 'rope', 'table', 'rug', 'salt', 'santa', 'scale', 'scanner', 'screen', 'seat', 'seating', 'machine', 'shampoo', 'bottle', 'shelf', 'shirt', 'shoe', 'rack', 'shoes', 'bag', 'shorts', 'shower', 'valve', 'curtain', 'rod', 'door', 'doors', 'floor', 'head', 'wall', 'walls', 'shredder', 'sign', 'sink', 'door', 'slippers', 'detector', 'soap', 'bottle', 'dish', 'dispenser', 'sock', 'stream', 'bed', 'chair', 'speaker', 'sponge', 'bottle', 'chairs', 'cups', 'chairs', 'stair', 'rail', 'staircase', 'stairs', 'stand', 'stapler', 'cup', 'statue', 'step', 'stool', 'sticker', 'stool', 'bin', 'box', 'container', 'organizer', 'shelf', 'stove', 'structure', 'light', 'animal', 'suitcase', 'suitcases', 'sweater', 'swiffer', 'switch', 'table', 'tank', 'tap', 'tape', 'kettle', 'teapot', 'bear', 'telephone', 'telescope', 'thermostat', 'tire', 'box', 'toaster', 'oven', 'toilet', 'brush', 'button', 'paper', 'dispenser', 'holder', 'package', 'rolls', 'dispenser', 'toiletry', 'toolbox', 'toothbrush', 'toothpaste', 'towel', 'rack', 'towels', 'dinosaur', 'piano', 'cone', 'bag', 'bin', 'cabinet', 'can', 'tray', 'rack', 'treadmill', 'tripod', 'trolley', 'trunk', 'tube', 'tupperware', 'tv', 'stand', 'umbrella', 'urinal', 'cleaner', 'vase', 'machine', 'vent', 'wall', 'hanging', 'lamp', 'rack', 'wardrobe', 'cabinet', 'closet', 'washcloth', 'machine', 'machines', 'bottle', 'cooler', 'fountain', 'heater', 'pitcher', 'sign', 'wheel', 'whiteboard', 'eraser', 'window', 'windowsill', 'wood', 'beam', 'workbench', 'mat']
 my_function1 = ['air', 'pad', 'pad', 'alarm', 'pad', 'baby', 'pad', 'pad', 'bag', 'pad', 'banana', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'bath', 'bath', 'pad', 'bathroom', 'bathroom', 'bathroom', 'bathroom', 'bathroom', 'pad', 'battery', 'pad', 'beanbag', 'pad', 'pad', 'beer', 'pad', 'pad', 'bike', 'bike', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'book', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'boxes', 'breakfast', 'pad', 'pad', 'pad', 'bulletin', 'bunk', 'pad', 'cabinet', 'cabinet', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'case', 'cat', 'cd', 'pad', 'ceiling', 'ceiling', 'pad', 'pad', 'pad', 'changing', 'pad', 'pad', 'pad', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'pad', 'pad', 'clothes', 'clothes', 'clothes', 'clothes', 'pad', 'clothing', 'pad', 'coat', 'pad', 'coffee', 'coffee', 'coffee', 'coffee', 'pad', 'compost', 'computer', 'conditioner', 'pad', 'pad', 'cooking', 'cooking', 'pad', 'pad', 'pad', 'couch', 'pad', 'covered', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'cutting', 'dart', 'pad', 'pad', 'desk', 'diaper', 'dining', 'dish', 'pad', 'dishwashing', 'pad', 'pad', 'display', 'display', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'dress', 'pad', 'drum', 'dryer', 'drying', 'duffel', 'pad', 'pad', 'pad', 'electric', 'pad', 'elevator', 'elliptical', 'end', 'pad', 'exercise', 'exercise', 'exit', 'pad', 'pad', 'file', 'fire', 'fire', 'pad', 'pad', 'flip', 'pad', 'flower', 'pad', 'folded', 'folded', 'folded', 'folded', 'pad', 'food', 'food', 'food', 'foosball', 'pad', 'pad', 'pad', 'frying', 'pad', 'pad', 'fuse', 'pad', 'garage', 'garbage', 'glass', 'pad', 'golf', 'grab', 'grocery', 'pad', 'guitar', 'hair', 'hair', 'pad', 'hand', 'hand', 'hand', 'hand', 'handicap', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'ikea', 'instrument', 'pad', 'pad', 'ironing', 'pad', 'pad', 'pad', 'pad', 'keyboard', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'kitchenaid', 'knife', 'pad', 'pad', 'lamp', 'pad', 'laundry', 'laundry', 'laundry', 'laundry', 'pad', 'pad', 'pad', 'light', 'loft', 'pad', 'pad', 'luggage', 'luggage', 'lunch', 'pad', 'pad', 'magazine', 'pad', 'mail', 'pad', 'pad', 'pad', 'massage', 'pad', 'pad', 'pad', 'messenger', 'pad', 'pad', 'mini', 'pad', 'mirror', 'pad', 'pad', 'mouthwash', 'pad', 'music', 'music', 'nerf', 'night', 'pad', 'pad', 'pad', 'office', 'open', 'pad', 'organizer', 'pad', 'pad', 'oven', 'pad', 'pantry', 'pantry', 'pantry', 'pad', 'pad', 'paper', 'paper', 'paper', 'paper', 'paper', 'paper', 'paper', 'pad', 'pad', 'pad', 'pad', 'piano', 'pad', 'pad', 'pad', 'pad', 'pad', 'ping', 'pad', 'pad', 'pad', 'pizza', 'pad', 'plastic', 'plastic', 'plastic', 'plastic', 'pad', 'pad', 'pad', 'pad', 'pool', 'pad', 'poster', 'poster', 'poster', 'pad', 'potted', 'power', 'power', 'pad', 'pad', 'projector', 'pad', 'pad', 'pad', 'rack', 'pad', 'pad', 'pad', 'range', 'recliner', 'recycling', 'pad', 'pad', 'rice', 'pad', 'rolled', 'pad', 'pad', 'round', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'sewing', 'pad', 'shampoo', 'pad', 'pad', 'pad', 'shoe', 'pad', 'shopping', 'pad', 'pad', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'pad', 'pad', 'pad', 'sliding', 'pad', 'smoke', 'pad', 'soap', 'soap', 'soap', 'pad', 'soda', 'sofa', 'sofa', 'pad', 'pad', 'spray', 'stack', 'stack', 'stack', 'pad', 'stair', 'pad', 'pad', 'pad', 'pad', 'starbucks', 'pad', 'pad', 'step', 'pad', 'pad', 'storage', 'storage', 'storage', 'storage', 'storage', 'pad', 'pad', 'studio', 'stuffed', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'tea', 'pad', 'teddy', 'pad', 'pad', 'pad', 'pad', 'tissue', 'pad', 'toaster', 'pad', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'pad', 'pad', 'pad', 'pad', 'pad', 'towel', 'pad', 'toy', 'toy', 'traffic', 'trash', 'trash', 'trash', 'trash', 'pad', 'tray', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'tv', 'pad', 'pad', 'vacuum', 'pad', 'vending', 'pad', 'pad', 'wall', 'wall', 'wall', 'pad', 'wardrobe', 'wardrobe', 'pad', 'washing', 'washing', 'water', 'water', 'water', 'water', 'water', 'wet', 'pad', 'pad', 'whiteboard', 'pad', 'pad', 'pad', 'wood', 'pad', 'yoga', 'pad']
+
 
 # sr3d
 object_class2 = ['table', 'pad', 'pad', 'alarm', 'clock', 'armchair', 'pad', 'pad', 'backpack', 'bag', 'bag', 'ball', 'holder', 'pad', 'pad', 'banner', 'bar', 'pad', 'pad', 'pad', 'basket', 'pad', 'wall', 'pad', 'cabinet', 'counter', 'stall', 'door', 'pad', 'bathtub', 'pad', 'ball', 'chair', 'bear', 'bed', 'pad', 'bottle', 'bench', 'bicycle', 'pad', 'pad', 'bin', 'pad', 'pad', 'blackboard', 'pad', 'blanket', 'blinds', 'pad', 'board', 'boards', 'pad', 'pad', 'book', 'rack', 'books', 'bookshelf', 'bookshelves', 'pad', 'bottle', 'bottle', 'bowl', 'box', 'boxes', 'boxes', 'bar', 'pad', 'pad', 'bucket', 'pad', 'board', 'bed', 'bicycle', 'cabinet', 'door', 'doors', 'cabinets', 'pad', 'calendar', 'camera', 'can', 'pad', 'pad', 'pad', 'car', 'pad', 'cardboard', 'carpet', 'pad', 'cart', 'pad', 'case', 'bottles', 'box', 'case', 'case', 'ceiling', 'fan', 'lamp', 'light', 'pad', 'pad', 'chair', 'pad', 'pad', 'chest', 'pad', 'clock', 'closet', 'ceiling', 'door', 'pad', 'doors', 'floor', 'rod', 'shelf', 'wall', 'walls', 'wardrobe', 'cloth', 'clothes', 'pad', 'pad', 'pad', 'pad', 'clothing', 'rack', 'coat', 'rack', 'rack', 'bag', 'box', 'pad', 'pad', 'mug', 'table', 'column', 'bin', 'pad', 'bottle', 'pad', 'bottle', 'container', 'pad', 'pad', 'pot', 'pad', 'copier', 'bag', 'pad', 'couch', 'cushion', 'counter', 'pad', 'box', 'crate', 'pad', 'pad', 'cup', 'cups', 'curtain', 'rod', 'curtains', 'cushion', 'board', 'board', 'decoration', 'desk', 'lamp', 'bin', 'table', 'rack', 'dishwasher', 'bottle', 'dispenser', 'display', 'case', 'rack', 'sign', 'bad', 'pad', 'pad', 'dolly', 'door', 'wall', 'pad', 'doors', 'drawer', 'rack', 'dresser', 'pad', 'pad', 'rack', 'bag', 'pad', 'pad', 'pad', 'pad', 'easel', 'pad', 'pad', 'pad', 'machine', 'table', 'pad', 'ball', 'bike', 'machine', 'sign', 'fan', 'faucet', 'cabinet', 'cabinets', 'pad', 'light', 'alarm', 'pad', 'pad', 'pad', 'fireplace', 'pad', 'pad', 'pad', 'floor', 'stand', 'pad', 'boxes', 'chair', 'chairs', 'ladder', 'table', 'folder', 'bag', 'container', 'display', 'table', 'footrest', 'footstool', 'frame', 'pan', 'pad', 'furniture', 'box', 'futon', 'pad', 'door', 'bag', 'pad', 'doors', 'globe', 'bag', 'bar', 'bag', 'guitar', 'case', 'pad', 'pad', 'hamper', 'pad', 'rail', 'dispenser', 'towel', 'bar', 'rail', 'hanging', 'hat', 'rack', 'headboard', 'headphones', 'heater', 'pad', 'pad', 'board', 'pad', 'bag', 'case', 'pad', 'pad', 'board', 'jacket', 'pad', 'box', 'pad', 'keyboard', 'piano', 'pad', 'pad', 'cabinet', 'cabinets', 'counter', 'pad', 'pad', 'pad', 'pad', 'ladder', 'lamp', 'pad', 'laptop', 'bag', 'basket', 'pad', 'hamper', 'ledge', 'legs', 'light', 'switch', 'bed', 'pad', 'pad', 'bottle', 'luggage', 'rack', 'stand', 'box', 'machine', 'magazine', 'rack', 'mail', 'bin', 'tray', 'tray', 'box', 'box', 'map', 'chair', 'mat', 'mattress', 'pad', 'pad', 'bag', 'pad', 'microwave', 'pad', 'mirror', 'doors', 'monitor', 'pad', 'mouse', 'bottle', 'mug', 'book', 'stand', 'pad', 'lamp', 'light', 'nightstand', 'notepad', 'object', 'chair', 'cabinet', 'pad', 'shelf', 'ottoman', 'oven', 'pad', 'painting', 'shelf', ' wall', 'wall', 'pad', 'paper', 'bag', 'pad', 'pad', 'pad', 'towel', 'dispenser', 'pad', 'pad', 'tray', 'papers', 'pad', 'person', 'photo', 'piano', 'bench', 'picture', 'pictures', 'pillar', 'pillow', 'pillows', 'pad', 'table', 'pipe', 'pipes', 'pad', 'box', 'boxes', 'plant', 'bin', 'container', 'containers', 'bin', 'pad', 'pad', 'pad', 'pad', 'pad', 'table', 'pad', 'poster', 'pad', 'printer', 'pad', 'pot', 'plant', 'pad', 'pad', 'printer', 'projector', 'screen', 'purse', 'pad', 'rack', 'stand', 'radiator', 'rail', 'railing', 'pad', 'chair', 'bin', 'refrigerator', 'pad', 'pad', 'chair', 'rod', 'poster', 'pad', 'pad', 'table', 'rug', 'pad', 'pad', 'pad', 'pad', 'screen', 'seat', 'seating', 'machine', 'shampoo', 'bottle', 'pad', 'shelf', 'shirt', 'shoe', 'rack', 'shoes', 'bag', 'shorts', 'shower', 'pad', 'curtain', 'rod', 'door', 'doors', 'pad', 'floor', 'pad', 'wall', 'wall', 'pad', 'table', 'sign', 'sink', 'bag', 'door', 'door', 'pad', 'pad', 'pad', 'soap', 'bar', 'bottle', 'pad', 'dispenser', 'pad', 'pad', 'can', 'stream', 'pad', 'bed', 'chair', 'pad', 'pad', 'bottle', 'chair', 'cups', 'chair', 'cups', 'stair', 'rail', 'staircase', 'stairs', 'stand', 'pad', 'pad', 'cup', 'statue', 'step', 'stool', 'pad', 'pad', 'pad', 'sticker', 'stool', 'stool', 'bin', 'box', 'container', 'pad', 'shelf', 'stove', 'pad', 'pad', 'light', 'pad', 'pad', 'suitcase', 'suitcases', 'sweater', 'pad', 'switch', 'table', 'lamp', 'tank', 'pad', 'pad', 'pad', 'pad', 'bear', 'telephone', 'pad', 'pad', 'bag', 'pad', 'thermostat', 'pad', 'box', 'toaster', 'oven', 'toilet', 'pad', 'pad', 'pad', 'dispenser', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'towel', 'rack', 'towels', 'pad', 'piano', 'pad', 'bag', 'bin', 'cabinet', 'can', 'tray', 'rack', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'tv', 'stand', 'umbrella', 'pad', 'pad', 'vase', 'machine', 'vent', 'wall', 'hanging', 'lamp', 'rack', 'wardrobe', 'cabinet', 'closet', 'pad', 'machine', 'machine', 'bottle', 'pad', 'pad', 'heater', 'pad', 'pad', 'sign', 'pad', 'whiteboard', 'pad', 'pad', 'window', 'windowsill', 'wood', 'pad', 'pad', 'pad', 'pad']
 my_function2 = ['hockey', 'mattress', 'pad', 'pad', 'alarm', 'pad', 'pad', 'pad', 'pad', 'pad', 'coffee', 'pad', 'banana', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'bath', 'pad', 'bathroom', 'bathroom', 'bathroom', 'stall', 'bathroom', 'pad', 'pad', 'pad', 'beanbag', 'pad', 'pad', 'pad', 'beer', 'pad', 'pad', 'bicycle', 'bicycle', 'pad', 'pad', 'pad', 'pad', 'blackboard', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'book', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'paper', 'breakfast', 'pad', 'pad', 'pad', 'pad', 'bulletin', 'bunk', 'pad', 'pad', 'cabinet', 'cabinet', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'case', 'litter', 'cd', 'cd', 'pad', 'ceiling', 'ceiling', 'ceiling', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'pad', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'closet', 'pad', 'pad', 'clothes', 'clothes', 'clothes', 'clothes', 'pad', 'clothing', 'pad', 'coat', 'pad', 'pad', 'coffee', 'coffee', 'coffee', 'coffee', 'coffee', 'pad', 'compost', 'computer', 'conditioner', 'pad', 'contact', 'pad', 'controller', 'cooking', 'cooking', 'cooler', 'pad', 'cosmetic', 'costume', 'pad', 'couch', 'pad', 'cover', 'covered', 'pad', 'crib', 'crutches', 'pad', 'pad', 'pad', 'curtain', 'pad', 'pad', 'cutting', 'board', 'pad', 'pad', 'desk', 'diaper', 'dining', 'dish', 'pad', 'dishwashing', 'pad', 'pad', 'display', 'display', 'display', 'divider', 'doll', 'dollhouse', 'pad', 'pad', 'door', 'doorframe', 'pad', 'pad', 'dress', 'pad', 'drum', 'dryer', 'drying', 'duffel', 'dumbbell', 'dumbbell', 'dumbell', 'dustpan', 'pad', 'electric', 'elevator', 'button', 'elliptical', 'end', 'envelope', 'exercise', 'exercise', 'exercise', 'exit', 'pad', 'pad', 'file', 'file', 'file', 'film', 'fire', 'fire', 'fire', 'fire', 'pad', 'fish', 'flag', 'flip', 'pad', 'stand', 'flowerpot', 'folded', 'chair', 'folded', 'folded', 'folded', 'pad', 'food', 'container', 'food', 'foosball', 'pad', 'pad', 'pad', 'frying', 'furnace', 'pad', 'fuse', 'pad', 'gaming', 'garage', 'garbage', 'glass', 'glass', 'pad', 'golf', 'grab', 'bag', 'pad', 'guitar', 'hair', 'dryer', 'pad', 'dryer', 'rail', 'hand', 'hand', 'bar', 'hand', 'pad', 'pad', 'hat', 'pad', 'pad', 'pad', 'helmet', 'hose', 'hoverboard', 'humidifier', 'ikea', 'instrument', 'ipad', 'iron', 'ironing', 'pad', 'jar', 'jewelry', 'pad', 'pad', 'keyboard', 'kinect', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'kitchen', 'pad', 'pad', 'pad', 'lamp', 'pad', 'laundry', 'laundry', 'laundry', 'laundry', 'pad', 'pad', 'pad', 'light', 'loft', 'loofa', 'lotion', 'lotion', 'pad', 'luggage', 'luggage', 'lunch', 'pad', 'pad', 'rack', 'pad', 'mail', 'mail', 'mail', 'mailbox', 'mailboxes', 'pad', 'massage', 'pad', 'pad', 'medal', 'media', 'messenger', 'metronome', 'pad', 'fridge', 'pad', 'mirror', 'pad', 'mop', 'pad', 'mouthwash', 'pad', 'music', 'stand', 'nerf', 'night', 'night', 'pad', 'pad', 'pad', 'chair', 'cabinet', 'organizer', 'organizer', 'pad', 'pad', 'oven', 'pad', 'pantry', 'pantry', 'pantry', 'pants', 'pad', 'paper', 'paper', 'paper', 'paper', 'paper', 'towel', 'towel', 'papertowel', 'paper', 'pad', 'pen', 'pad', 'pad', 'pad', 'piano', 'pad', 'pad', 'pad', 'pad', 'pad', 'ping', 'ping', 'pad', 'pad', 'pitcher', 'pizza', 'pizza', 'pad', 'plastic', 'plastic', 'plastic', 'plastic', 'plate', 'plates', 'platform', 'plunger', 'podium', 'pool', 'postcard', 'pad', 'poster', 'printer', 'poster', 'pad', 'potted', 'power outlet', 'power strip', 'pad', 'pad', 'projector', 'pad', 'quadcopter', 'pad', 'rack', 'pad', 'pad', 'pad', 'range', 'recliner', 'recycling', 'pad', 'remote', 'rice', 'rocking', 'pad', 'rolled', 'roomba', 'rope', 'round', 'pad', 'salt', 'santa', 'scale', 'scanner', 'pad', 'pad', 'pad', 'machine', 'pad', 'bottle', 'shaving', 'pad', 'pad', 'pad', 'shoe', 'pad', 'bag', 'pad', 'pad', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shower', 'shredder', 'side', 'pad', 'pad', 'sleeping', 'sliding', 'sliding', 'slipper', 'slippers', 'smoke', 'pad', 'bar', 'soap', 'soap', 'soap', 'sock', 'socks', 'soda', 'soda', 'sofa', 'sofa', 'chair', 'speaker', 'sponge', 'spray', 'stack', 'stack', 'stack', 'stack', 'pad', 'stair', 'pad', 'pad', 'pad', 'stapler', 'star', 'starbucks', 'pad', 'pad', 'step', 'stepladder', 'stepstool', 'stick', 'pad', 'pad', 'pad', 'storage', 'storage', 'storage', 'storage', 'storage', 'pad', 'stovetop', 'structure', 'studio', 'stuffed', 'subwoofer', 'pad', 'pad', 'pad', 'swiffer', 'pad', 'pad', 'lamp', 'pad', 'tap', 'tape', 'tea', 'teapot', 'teddy', 'pad', 'telescope', 'tennis', 'racket', 'thermos', 'pad', 'tire', 'tissue', 'pad', 'toaster', 'pad', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toilet', 'toiletry', 'toolbox', 'toothbrush', 'toothpaste', 'pad', 'towel', 'pad', 'dinosaur', 'toy', 'traffic', 'trash', 'trash', 'trash', 'trash', 'pad', 'tray', 'treadmill', 'tripod', 'trolley', 'trunk', 'tube', 'tupperware', 'pad', 'tv', 'pad', 'urinal', 'vacuum', 'pad', 'vending', 'pad', 'pad', 'wall', 'wall', 'wall', 'pad', 'wardrobe', 'wardrobe', 'washcloth', 'washing', 'washing', 'water', 'water', 'water', 'water', 'water', 'water', 'floor', 'wheel', 'pad', 'whiteboard', 'wig', 'pad', 'pad', 'pad', 'wood', 'workbench', 'controller', 'yoga']
+
+
 class R2G(nn.Module):
     """
     A neural listener for segmented 3D scans based on graph-convolutions.
@@ -80,7 +83,7 @@ class R2G(nn.Module):
         self.args = args
 
         self.property_embedding = property_tokenid
-        self.concept_vocab = concept_vocab      # object_semantic_token + color_semantic_token + relation_semantic_tokenid
+        self.concept_vocab = concept_vocab      # object_semantic_token + color_semantic_token + relation_semantic_token
         self.num_property = len(property_tokenid)
         self.object_semantic_filter_index = object_semantic_filter_index
         self.concept_vocab_seg = concept_vocab_seg
@@ -170,10 +173,10 @@ class R2G(nn.Module):
         if self.object_semantic_filter_index is not None:
             object_semantic_prob = F.softmax(result['class_logits'][:, :, self.object_semantic_filter_index], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
         else:
-            object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
-            function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
-            # object_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
-            # function_semantic_prob = batch['gt_class'][:, :, :-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            # object_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[:self.concept_vocab_seg[0]]
+            # function_semantic_prob = F.softmax(result['class_logits'], dim =-1) @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+            object_semantic_prob = batch['gt_class'][:,:,:-1].cuda() @ concept_vocab[:self.concept_vocab_seg[0]]
+            function_semantic_prob = batch['gt_class'][:,:,:-1].cuda() @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
 
         color_onehot = torch.Tensor(batch['color_onehot']).cuda()   # B X N X one-hot, (B * 52 * 13)
         #  B x N x 13       * 13 x embedding      ->      B X N X embedding, (B * 52 * 300)
@@ -188,8 +191,8 @@ class R2G(nn.Module):
             #          B x N x N x k       K x embedding 
             edge_attr = edge_prob_logits @ concept_vocab[self.concept_vocab_seg[2]:]
         elif self.args.relation_retrieval:
-            # edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
-            edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            # edge_prob_logits = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             # edge_prob_logits = (SR_Retrieval(self.mode, batch['gt_class'], batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'])).cuda() # Bx N x N xk
             #          B x N x N x k       K x embedding 
             # edge_attr = F.softmax(edge_prob_logits, dim =-1) @ concept_vocab[self.concept_vocab_seg[2]:]
@@ -229,29 +232,6 @@ class R2G(nn.Module):
         if edge_prob is not None:
             result['sr_prob'] = edge_prob
 
-        # if self.args.tar_anch_alpha > 0:
-        #     if edge_prob_logits is not None:
-        #         if 'target_pos' in batch.keys() and 'anchors_pos' in batch.keys():
-        #             batch_size = edge_prob_logits.shape[0]
-        #             batch_ind = torch.tensor(range(batch_size)).unsqueeze(0).transpose(0, 1).cuda()
-        #             target_pos = batch['target_pos'].unsqueeze(0).transpose(0,1)
-        #             anchor_pos = batch['anchors_pos'].unsqueeze(0).transpose(0,1).cuda()
-        #             index = torch.cat([batch_ind, target_pos, anchor_pos], dim = -1)
-        #             result['tar_anc_sr'] = edge_prob_logits[index.unbind(dim = 1)]
-                    
-        # if edge_prob_logits is not None:
-        #     if 'target_pos' in batch.keys() and 'anchors_pos' in batch.keys():
-        #         tar_anc_sr = []
-        #         for ind, _edge_prob in enumerate(edge_prob_logits):
-        #             tar_anc_sr.append(_edge_prob[batch['target_pos'][ind]][batch['anchors_pos'][ind].cuda()].unsqueeze(0))
-        #         result['tar_anc_sr'] = torch.cat(tar_anc_sr, dim =0)
-
-
-        #nsm baseline
-        # bsz, num = encoded_questions.shape[:2]
-        # final_features = torch.cat([node_attr.view(bsz, num, -1), encoded_questions], dim =-1)
-        # result['logits'] = get_siamese_features(self.obj_ref, final_features, torch.cat)#nsm
-
         return result
 
 def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: int, class_to_index: dict) -> nn.Module:
@@ -265,91 +245,101 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     """
     # convenience
     geo_out_dim = args.object_latent_dim
-    lang_out_dim = args.language_latent_dim
 
     if 'sr3d' in args.referit3D_file:
         object_class = object_class2
         my_function = my_function2
-        # concept_vocab = sr3d_vocab_set
+        # concept_vocab_set = sr3d_vocab_set
     elif 'nr3d' in args.referit3D_file:
         object_class = object_class1
         my_function = my_function1
-        # concept_vocab = nr3d_vocab_set
+        # concept_vocab_set = nr3d_vocab_set
 
-    # prepare the properties and concept token ids 
-    object_semantic_filtertoken = vocab.encode(object_class, add_begin_end = False)[0] # 525 object-semantic-label; -1 is the pad class
-    # object_semantic_filter_index = [index for index, value in enumerate(object_semantic_token) if value != 3]#183
-    # object_semantic_filtertoken =  [value for index, value in enumerate(object_semantic_token) if value != 3]#183
-
-    # concept_vocab_set = vocab.encode(concept_vocab, add_begin_end = False)[0]
-
+    # Tokenizer the properties and concept token
     color_semantic = ['white', 'blue', 'brown', 'black', 'red', 'green', 'grey', 'yellow', 'purple', 'sliver', 'gold', 'pink', 'orange']
-    color_semantic_token = vocab.encode(color_semantic, add_begin_end = False)[0] # 13 color-semantic-label
     relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
-    # if args.relation_retrieval and args.language_relation_alpha == 0:
-    #     relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported']
-    # elif args.relation_pred or args.language_relation_alpha > 0:
-    #     relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']#support
-    # else:
-    #     # relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported']
-    #     relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']#support
-    relation_semantic_tokenid = vocab.encode(relation_semantic, add_begin_end = False)[0]   # 11 relation-semantic-label
+    if args.model_attr:
+        if args.multi_attr:
+            # Tokenizer the attribute
+            size = ['large', 'small']
+            height = ['tall', 'lower']
+            position = ['middle', 'corner']
+            orientation = ['top', 'bottom']
+            end = ['leftmost', 'rightmost']
+            length = ['long', 'short']
+            curve = ['curve', 'pad']
+            property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations']
+            # Embedding the attributes
+            size_token = vocab.encode(size, add_begin_end = False)[0] 
+            height_token = vocab.encode(height, add_begin_end = False)[0]
+            position_token = vocab.encode(position, add_begin_end = False)[0]
+            orientation_token = vocab.encode(orientation, add_begin_end = False)[0]
+            end_length = vocab.encode(end, add_begin_end = False)[0]
+            length_token = vocab.encode(length, add_begin_end = False)[0]   
+            curve_token = vocab.encode(curve, add_begin_end = False)[0]
+        # formulate the different attriute into one
+        else:
+            # Tokenizer the attribute
+            property_semantic = ['identity', 'color', 'function', 'attribute', 'relations'] # 5 properties, NSM: L + 2, L =1
+            attribute = ['large', 'small', 'tall', 'lower', 'middle', 'corner', 'top', 'bottom', 'leftmost', 'rightmost', 'long', 'short', 'curve']
+            # Embedding the attributes
+            attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
+    else:
+        property_semantic = ['identity', 'color', 'function', 'relations'] # 4 properties, NSM: L + 2, L =1
 
-    size = ['large', 'small']
-    size_token = vocab.encode(size, add_begin_end = False)[0]   # 11 relation-semantic-label
-    height = ['tall', 'lower']
-    height_token = vocab.encode(height, add_begin_end = False)[0]   # 11 relation-semantic-label
-    position = ['middle', 'corner']
-    position_token = vocab.encode(position, add_begin_end = False)[0]   # 11 relation-semantic-label
-    orientation = ['top', 'bottom']
-    orientation_token = vocab.encode(orientation, add_begin_end = False)[0]   # 11 relation-semantic-label
-    end = ['leftmost', 'rightmost']
-    end_length = vocab.encode(end, add_begin_end = False)[0]   # 11 relation-semantic-label
-    length = ['long', 'short']
-    length_token = vocab.encode(length, add_begin_end = False)[0]   # 11 relation-semantic-label
-    curve = ['curve', 'pad']
-    curve_token = vocab.encode(curve, add_begin_end = False)[0]   # 11 relation-semantic-label
-
-    # attribute = ['large', 'small', 'tall', 'lower', 'end', 'middle', 'top', 'bottom', 'leftmost', 'rightmost', 'corner', 'long', 'short']
-    # attribute_token =  vocab.encode(attribute, add_begin_end = False)[0]
-
-    property_semantic = ['identity', 'color', 'function', 'relations'] # 4 properties, NSM: L + 2, L =1
-    # property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations'] # 4 properties, NSM: L + 2, L =1
-    property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
+    # Embedding the words
+    object_semantic_filtertoken = vocab.encode(object_class, add_begin_end = False)[0] # 525 object-semantic-label; -1 is the pad class
+    color_semantic_token = vocab.encode(color_semantic, add_begin_end = False)[0] # 13 color-semantic-label
     function_semantic_token = vocab.encode(my_function, add_begin_end = False)[0]
-    # concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + \
-    #     height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_tokenid
-    concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_tokenid
-    # concept_vocab_seg = [len(object_semantic_filtertoken), \
-    #                      len(object_semantic_filtertoken) + len(color_semantic_token), \
-    #                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
-    #                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token), \
-    #                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token), \
-    #                                     len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token), \
-    #                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
-    #                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
-    #                                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
-    #                                                     len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token), \
-    #                                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token) + len(relation_semantic_tokenid)]
-    concept_vocab_seg = [len(object_semantic_filtertoken), \
-                         len(object_semantic_filtertoken) + len(color_semantic_token), \
-                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
-                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(relation_semantic_tokenid)]
+    relation_semantic_token = vocab.encode(relation_semantic, add_begin_end = False)[0]   # 11 relation-semantic-label
+    property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
+    print(len(object_semantic_filtertoken))
+    # concept_vocab_set = vocab.encode(concept_vocab_set, add_begin_end = False)[0]
+
+
+    if args.model_attr:
+        if args.multi_attr:
+            concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_token
+            concept_vocab_seg = [len(object_semantic_filtertoken), \
+                                len(object_semantic_filtertoken) + len(color_semantic_token), \
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
+                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token), \
+                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token), \
+                                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
+                                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
+                                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
+                                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token), \
+                                                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token) + len(relation_semantic_token)]
+        else:
+            concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + attribute_token + relation_semantic_token
+            concept_vocab_seg = [len(object_semantic_filtertoken), \
+                                    len(object_semantic_filtertoken) + len(color_semantic_token), \
+                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token),\
+                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]    
+    else:
+        concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_token
+        concept_vocab_seg = [len(object_semantic_filtertoken), \
+                                len(object_semantic_filtertoken) + len(color_semantic_token), \
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(relation_semantic_token)]    
+
     
     
     # make an object (segment) encoder for point-clouds with color
+    if args.obj_cls_alpha > 0:
+        if args.object_encoder == 'pnet_pp':
+            object_encoder = single_object_encoder(geo_out_dim)
+        elif args.object_encoder == 'pointnext':
+            from .default_blocks import pointnext_object_encoder, object_cls_for_next
+            print("------------using pointnext as object encoder--------------")
+            object_encoder = pointnext_object_encoder(geo_out_dim)
+        else:
+            raise ValueError('Unknown object point cloud encoder!')
+    else:
+        object_encoder = None 
     object_encoder = single_object_encoder(geo_out_dim)
-    # if args.obj_cls_alpha > 0:
-    #     if args.object_encoder == 'pnet_pp':
-    #         object_encoder = single_object_encoder(geo_out_dim)
-    #     elif args.object_encoder == 'pointnext':
-    #         from .default_blocks import pointnext_object_encoder, object_cls_for_next
-    #         print("------------using pointnext as object encoder--------------")
-    #         object_encoder = pointnext_object_encoder(geo_out_dim)
-    #     else:
-    #         raise ValueError('Unknown object point cloud encoder!')
-    # else:
-    #     object_encoder = None 
 
     # Optional, make a bbox encoder
     object_clf = None
@@ -376,12 +366,6 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
     
 
-    # # make a language encoder
-    # lang_encoder = token_encoder(vocab=vocab,
-    #                              word_embedding_dim=args.word_embedding_dim,#, glove 300,
-    #                              lstm_n_hidden=lang_out_dim,
-    #                              word_dropout=args.word_dropout,
-    #                              random_seed=args.random_seed)
 
     # color token embed
     token_embed = token_embeder(vocab=vocab,
@@ -392,18 +376,13 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     model = R2G(
         args=args,
         object_encoder=object_encoder,
-        # language_encoder=lang_encoder,
-        # graph_encoder=graph_encoder,
         object_clf=object_clf,
         language_clf=language_clf,
         token_embed = token_embed,
         instruction_clf = instruction_clf,
-        # object_language_clf=object_language_clf,
         property_tokenid = property_tokenid,
         concept_vocab = concept_vocab,
-        # concept_vocab_set = concept_vocab_set,
         relation_num = len(relation_semantic),
-        # object_semantic_filter_index = object_semantic_filter_index,
         relation_clf = relation_clf,
         concept_vocab_seg = concept_vocab_seg,
         num_node_properties = len(property_semantic) -1)

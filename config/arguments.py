@@ -88,8 +88,8 @@ def parse_arguments(notebook_options=None):
     #                                                                      ' object its class type is added.')
     parser.add_argument('--self-supervision-alpha', type=float, default=0.3, help='if > 0 a loss for keeping the relation rational'
                                                                          ' is added.')
-
-
+    parser.add_argument('--model-attr', type = bool, default = False, help = 'True to model object attributes')
+    parser.add_argument('--multi_attr', type = bool, default = False, help = 'True to use multi-attributes')
     #
     # Misc arguments
     #
