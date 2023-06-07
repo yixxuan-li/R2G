@@ -76,16 +76,20 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--language-latent-dim', type=int, default=128)
     parser.add_argument('--word-embedding-dim', type=int, default=300)
 
-    parser.add_argument('--lang-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing the target via '
+    parser.add_argument('--target-cls-alpha', type=float, default=0.0, help='if > 0 a loss for guessing the target via '
                                                                           'language only is added.')
+    parser.add_argument('--lang-cls-alpha', type=float, default=0.0, help='if > 0 a loss for guessing the target via '
+                                                                        'language only is added.')
     parser.add_argument('--obj-cls-alpha', type=float, default=0.5, help='if > 0 a loss for guessing for each segmented'
                                                                          ' object its class type is added.')
+    parser.add_argument('--relation-cls-alpha', type=float, default=0.0, help='if > 0 a loss for guessing for instruction'
+                                                                         ' relation its class type is added.')
     parser.add_argument('--language-relation-alpha', type=float, default=0.0, help='if > 0 a loss for guessing for instruction'
                                                                          ' relation its class type is added.')
+    parser.add_argument('--anchor-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing for instruction'
+                                                                         ' object its class type is added.')
     parser.add_argument('--instruction-cls-alpha', type=float, default=0.2, help='if > 0 a loss for guessing for instruction'
                                                                          ' object its class type is added.')
-    # parser.add_argument('--tar-anch-alpha', type=float, default=0.3, help='if > 0 a loss for guessing for each segmented'
-    #                                                                      ' object its class type is added.')
     parser.add_argument('--self-supervision-alpha', type=float, default=0.3, help='if > 0 a loss for keeping the relation rational'
                                                                          ' is added.')
     parser.add_argument('--model-attr', type = bool, default = False, help = 'True to model object attributes')

@@ -51,16 +51,13 @@ class R2G(nn.Module):
                  args,
                  object_encoder,
                  token_embed,
-                 object_language_clf = None,
-                 object_clf=None,
-                 language_clf=None,
-                 instruction_clf = None,
-                 graph_encoder = None,
+                 object_clf = None,
+                 target_clf = None,
+                 anchor_clf = None,
                  property_tokenid = None,
                  concept_vocab = None,
                  relation_num = None,
                  relation_clf = None,
-                 language_encoder = None,
                  concept_vocab_seg = None,
                  num_node_properties = None,
                  concept_vocab_set = None):
@@ -117,23 +114,23 @@ class R2G(nn.Module):
                 self.mode = 'nr3d'
 
         # ## NSM 
-        if args.language_relation_alpha + args.lang_cls_alpha + args.instruction_cls_alpha > 0:    
-            if args.language_relation_alpha == 0:
+        if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
+            if args.relation_cls_alpha == 0:
                 relation_clf = None
-            if args.lang_cls_alpha == 0:
-                language_clf = None
-            if args.instruction_cls_alpha == 0:
-                instruction_clf = None
+            if args.target_cls_alpha == 0:
+                target_clf = None
+            if args.anchor_cls_alpha == 0:
+                anchor_clf = None
             self.nsm = NSM( input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
                             description_hidden_size = 256,
-                            language_clf = language_clf,
+                            target_clf = target_clf,
                             relation_clf = relation_clf,
-                            instruction_clf = instruction_clf
+                            anchor_clf = anchor_clf
                             )
         else:
-            self.nsm = NSM(input_size = args.word_embedding_dim, 
+            self.nsm = NSM( input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
                             description_hidden_size = 256
@@ -358,21 +355,21 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         object_clf = object_decoder_for_clf(geo_out_dim, n_obj_classes)
     # object_clf = object_decoder_for_clf(geo_out_dim, n_obj_classes)
 
-    language_clf = None
-    if args.lang_cls_alpha > 0:
+    target_clf = None
+    if args.target_cls_alpha > 0:
         print('Adding a text-classification loss.')
-        language_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
+        target_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
 
 
-    instruction_clf = None
-    if args.instruction_cls_alpha > 0:
+    anchor_clf = None
+    if args.anchor_cls_alpha > 0:
         print('Adding a instruction-classification loss.')
-        instruction_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
+        anchor_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
         
     relation_clf = None
-    if args.language_relation_alpha > 0:
+    if args.relation_cls_alpha > 0:
         relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
     
 
@@ -387,9 +384,9 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         args=args,
         object_encoder=object_encoder,
         object_clf=object_clf,
-        language_clf=language_clf,
+        target_clf=target_clf,
         token_embed = token_embed,
-        instruction_clf = instruction_clf,
+        anchor_clf = anchor_clf,
         property_tokenid = property_tokenid,
         concept_vocab = concept_vocab,
         relation_num = len(relation_semantic),

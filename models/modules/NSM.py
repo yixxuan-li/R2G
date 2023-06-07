@@ -255,9 +255,9 @@ class NSM(nn.Module):
                  num_instructions: int, 
                  description_hidden_size: int, 
                  dropout: float = 0.0,
+                 anchor_clf = None,
                  relation_clf = None,
-                 language_clf = None,
-                 instruction_clf = None,
+                 target_clf = None,
                  vocab_len = None
                  ):
         super(NSM, self).__init__()
@@ -267,9 +267,9 @@ class NSM(nn.Module):
         )#300, 5+1, 16
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
-        self.anchor_clf = instruction_clf
+        # self.anchor_clf = anchor_clf
         self.relation_clf = relation_clf
-        self.target_clf = language_clf        
+        self.target_clf = target_clf        
         
     def forward(
         self,

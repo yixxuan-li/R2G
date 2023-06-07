@@ -130,20 +130,20 @@ if __name__ == '__main__':
         criteria['class_logits'] = nn.CrossEntropyLoss(ignore_index=class_to_idx['pad']).to(device)
 
     # # Target-in-language guessing
-    if args.lang_cls_alpha > 0:
-        criteria['lang_logits'] = nn.CrossEntropyLoss().to(device)
+    if args.target_cls_alpha > 0:
+        criteria['target_logits'] = nn.CrossEntropyLoss().to(device)
 
-    if args.instruction_cls_alpha > 0:
-        criteria['instruction_logits'] = nn.CrossEntropyLoss().to(device)
+    if args.anchor_cls_alpha > 0:
+        criteria['anchor_logits'] = nn.CrossEntropyLoss().to(device)
 
 
     if args.self_supervision_alpha > 0:
         print('Adding a self-supervised loss.')
         criteria['self_sv_logits'] = My_Loss().to(device)
         
-    if args.language_relation_alpha > 0:
+    if args.relation_cls_alpha > 0:
         print("Adding language-relation-pred loss.")
-        criteria['self_language_relation_logits'] = nn.CrossEntropyLoss().to(device)
+        criteria['relation_logits'] = nn.CrossEntropyLoss().to(device)
         
     # Prepare the Listener
     n_classes = len(class_to_idx) - 1  # -1 to ignore the <pad> class
