@@ -5,6 +5,8 @@ from torch import nn
 from collections import defaultdict
 import torch.nn.functional as F
 import numpy as np
+from einops import rearrange, repeat
+
 
 from . import MLP
 from . import NSM, Relation_Estimate, SR_Retrieval, Attr_Estimate, Attr_Compute
@@ -169,12 +171,13 @@ class R2G(nn.Module):
         else:
             object_class_prob = F.softmax(result['class_logits'], dim =-1)
         # Construct node representation 
+        batch_size, num_objects, _ = object_class_prob.shape
         # Identity information 
-        object_semantic_prob = object_class_prob @ concept_vocab[:self.concept_vocab_seg[0]]
+        object_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[:self.concept_vocab_seg[0]], 'c h -> b c h', b = batch_size))
         # Function information
-        function_semantic_prob = object_class_prob @ concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]]
+        function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
         # Color information
-        color_semantic_prob = batch['color_onehot'] @ concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]]
+        color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
         
         if self.args.model_attr:
             if self.args.multi_attr:
@@ -183,13 +186,13 @@ class R2G(nn.Module):
                 obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
                 obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-                ls_attr = ls_logits.float() @ concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]].unsqueeze(0)
-                tl_attr = tl_logits.float() @ concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]].unsqueeze(0)
-                mc_attr = batch['mc_attr'] @ concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]].unsqueeze(0)
-                tb_attr = batch['tb_attr'] @ concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]].unsqueeze(0)
-                lr_attr = F.softmax(lr_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]].unsqueeze(0)
-                losh_attr =losh_logits.float() @ concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]].unsqueeze(0)
-                curve_attr = F.softmax(curve_logits, dim = -1) @ concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]].unsqueeze(0)
+                ls_attr = torch.matmul(ls_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
+                tl_attr = torch.matmul(tl_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]], 'c h -> b c h', b = batch_size))
+                mc_attr = torch.matmul(batch['mc_attr'], repeat(concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]], 'c h -> b c h', b = batch_size)) 
+                tb_attr = torch.matmul(batch['tb_attr'], repeat(concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]], 'c h -> b c h', b = batch_size))
+                lr_attr = torch.matmul(F.softmax(lr_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]], 'c h -> b c h', b = batch_size))
+                losh_attr = torch.matmul(losh_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]], 'c h -> b c h', b = batch_size))
+                curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]], ' c h -> b c h', b = batch_size))
 
                 node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
 
@@ -217,12 +220,12 @@ class R2G(nn.Module):
         # B x N x N x prob_softmax   * probmax x embedding     ->     B X N X N X onehot_dim -> B X N X N X embedding, (B * n * n * 300)
         if self.args.relation_pred:
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
-            edge_attr = edge_prob_logits @ relation_vocab
+            edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
             edge_prob_logits = SR_Retrieval(self.mode, object_class_prob, batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
-            edge_attr = edge_prob_logits.cuda().float() @ relation_vocab
+            edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         else:
-            edge_attr = batch['edge_attr'].cuda().float() @ relation_vocab
+            edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
         final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float())
