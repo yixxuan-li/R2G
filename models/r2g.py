@@ -175,7 +175,6 @@ class R2G(nn.Module):
         function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
         # Color information
         color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
-        
         if self.args.model_attr:
             if self.args.multi_attr:
                 ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
@@ -230,15 +229,15 @@ class R2G(nn.Module):
         # Get the final weights over the nodes
         result['logits'] = final_node_distribution + batch['object_mask'].cuda()
         
-        if self.args.language_relation_alpha > 0:
+        if self.args.relation_cls_alpha > 0:
             result['relation_logits'] = lang_relation_logits
 
         # Classify the target instance label based on the text
-        if self.args.lang_cls_alpha > 0:
-            result['lang_logits'] = target_logits
+        if self.args.target_cls_alpha > 0:
+            result['target_logits'] = target_logits
 
-        if self.args.instruction_cls_alpha > 0:
-            result['instruction_logits'] = anchor_logits
+        if self.args.anchor_cls_alpha > 0:
+            result['anchor_logits'] = anchor_logits
 
         return result
 

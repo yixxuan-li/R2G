@@ -50,12 +50,17 @@ if __name__ == '__main__':
             info = '{}: Total-Loss {:.4f}, Listening-Acc {:.4f}'.format(phase,
                                                                         meters[phase + '_total_loss'],
                                                                         meters[phase + '_referential_acc'])
-
             if args.obj_cls_alpha > 0:
                 info += ', Object-Clf-Acc: {:.4f}'.format(meters[phase + '_object_cls_acc'])
 
-            if args.lang_cls_alpha > 0:
-                info += ', Text-Clf-Acc: {:.4f}'.format(meters[phase + '_txt_cls_acc'])
+            if args.target_cls_alpha > 0:
+                info += ', Text-Clf-Acc: {:.4f}'.format(meters[phase + '_target_cls_acc'])
+
+            if args.anchor_cls_alpha > 0:
+                info += ', Anchor-Clf-Acc: {:.4f}'.format(meters[phase + '_anchor_cls_acc'])       
+
+            if args.relation_cls_alpha > 0:
+                info += ', Relation-Clf-Acc: {:.4f}'.format(meters[phase + '_relation_cls_acc'])        
 
             logger.info(info)
             logger.info('{}: Epoch-time {:.3f}'.format(phase, timings[phase]))
