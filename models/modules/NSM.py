@@ -352,6 +352,10 @@ class NSM(nn.Module):
             # calculate intructions' property similarities(both node and relation)
             # instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
             instruction_prop = torch.zeros([batch_size, num_property]).cuda()
+            if ins_id == 0 or ins_id == 2:
+                instruction_prop[:, :-1] = 1
+            else:
+                instruction_prop[:, -1] = 1
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN
