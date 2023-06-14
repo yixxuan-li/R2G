@@ -258,22 +258,22 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             obj_loss_mtr.update(all_losses['obj_clf_loss'].item(), batch_size)
 
         if args.target_cls_alpha > 0:
-            batch_guess = torch.argmax(res['lang_logits'], -1)
+            batch_guess = torch.argmax(res['target_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['target_class']).double())
             target_acc_mtr.update(cls_b_acc, batch_size)
 
         if args.anchor_cls_alpha > 0:
-            batch_guess = torch.argmax(res['instruction_logits'], -1)
+            batch_guess = torch.argmax(res['anchor_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
             anchor_acc_mtr.update(cls_b_acc, batch_size)
-            anchor_loss_mtr.update(all_losses['instruction_loss'].item(), batch_size)
+            anchor_loss_mtr.update(all_losses['anchor_clf_loss'].item(), batch_size)
 
         
         if args.relation_cls_alpha > 0:
             batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             relation_acc_mtr.update(cls_b_acc, batch_size)
-            relation_loss_mtr.update(all_losses['lang_rela_loss'].item(), batch_size)            
+            relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
 
 
     metrics['train_total_loss'] = total_loss_mtr.avg
@@ -281,11 +281,11 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
     metrics['train_referential_acc'] = ref_acc_mtr.avg
     metrics['train_object_cls_acc'] = cls_acc_mtr.avg
-    metrics['train_txt_cls_acc'] = target_acc_mtr.avg
-    metrics['train_instr_cls_acc'] = anchor_acc_mtr.avg
-    metrics['train_instr_loss'] = anchor_loss_mtr.avg
-    metrics['train_relation_loss'] = relation_loss_mtr.avg
-    metrics['train_relation_acc'] = relation_acc_mtr.avg
+    metrics['train_target_cls_acc'] = target_acc_mtr.avg
+    metrics['train_anchor_cls_acc'] = anchor_acc_mtr.avg
+    metrics['train_anchor_loss'] = anchor_loss_mtr.avg
+    metrics['train_relation_cls_loss'] = relation_loss_mtr.avg
+    metrics['train_relation_cls_acc'] = relation_acc_mtr.avg
 
     return metrics
 
@@ -405,14 +405,14 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
             batch_guess = torch.argmax(res['anchor_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
             anchor_acc_mtr.update(cls_b_acc, batch_size)
-            anchor_loss_mtr.update(all_losses['anchor_loss'].item(), batch_size)
+            anchor_loss_mtr.update(all_losses['anchor_clf_loss'].item(), batch_size)
 
 
         if args.relation_cls_alpha > 0:
             batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             relation_acc_mtr.update(cls_b_acc, batch_size)
-            relation_loss_mtr.update(all_losses['relation_loss'].item(), batch_size)     
+            relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)     
 
     metrics['test_total_loss'] = total_loss_mtr.avg
     metrics['test_referential_loss'] = referential_loss_mtr.avg

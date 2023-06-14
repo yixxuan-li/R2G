@@ -267,7 +267,7 @@ class NSM(nn.Module):
         )#300, 5+1, 16
         self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
-        # self.anchor_clf = anchor_clf
+        self.anchor_clf = anchor_clf
         self.relation_clf = relation_clf
         self.target_clf = target_clf        
         
@@ -314,6 +314,24 @@ class NSM(nn.Module):
             concept_vocab, description
         )
     
+        ## constrain the 3 instructions
+        anchor_logits = None
+        anchor_instruction = None
+        if self.anchor_clf is not None:
+            anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
+            anchor_instruction = torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]])
+
+        lang_relation_logits = None
+        relation_instruction = None
+        if self.relation_clf is not None:
+            lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
+            relation_instruction = torch.matmul(lang_relation_logits, concept_vocab[concept_vocab_seg[-2]:])
+            
+        target_logits = None
+        target_instruction = None
+        if self.target_clf is not None:
+            target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
+            target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)
@@ -322,7 +340,7 @@ class NSM(nn.Module):
         # Initialize distribution over the nodes, size: batch_size x num_node: num of node
         
         #                       B x N                           B x 1
-        distribution =torch.ones(batch_size, num_node).cuda() * (1 / context_size).unsqueeze(1)
+        distribution = torch.ones(batch_size, num_node).cuda() * (1 / context_size).unsqueeze(1)
         
         distribution = F.softmax(distribution + node_mask, dim = -1)
         
@@ -334,15 +352,18 @@ class NSM(nn.Module):
             # calculate intructions' property similarities(both node and relation)
             # instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
             instruction_prop = torch.zeros([batch_size, num_property]).cuda()
-            if ins_id == 0 or ins_id == 2:
-                instruction_prop[:, :-1] = 1
-            else:
-                instruction_prop[:, -1] = 1
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN
             instruction = instructions[:, :].unbind(1)[ins_id]
-                
+
+            if ins_id == 0 and anchor_instruction is not None:
+                instruction = anchor_instruction
+            if ins_id == 1 and relation_instruction is not None:
+                instruction = relation_instruction
+            if ins_id == 2 and target_instruction is not None:
+                instruction = target_instruction
+                t_distribution = distribution             
                 
             distribution = self.nsm_cell(
                 node_attr,
@@ -359,5 +380,5 @@ class NSM(nn.Module):
             
         all_instruction = instructions[:, :].unbind(1)
 
-        return distribution, encoded_questions, prob, all_instruction, None, None, None
+        return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
 
