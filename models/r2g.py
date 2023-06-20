@@ -141,7 +141,7 @@ class R2G(nn.Module):
     def __call__(self, batch: dict) -> dict:
         result = defaultdict(lambda: None)
         # Get features for each segmented scan object based on color and point-cloud
-        if self.args.obj_cls_alpha + self.args.model_attr > 0:
+        if self.args.obj_cls_alpha + self.args.model_attr + self.args.relation_pred> 0:
             # Get features for each segmented scan object based on color and point-cloud
             objects_features = get_siamese_features(self.object_encoder, batch['objects'],
                                                     aggregator=torch.stack)  # B X N_Objects x object-latent-dim
@@ -334,7 +334,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     
     
     # make an object (segment) encoder for point-clouds with color
-    if args.obj_cls_alpha > 0:
+    if args.obj_cls_alpha + args.relation_pred> 0:
         if args.object_encoder == 'pnet_pp':
             object_encoder = single_object_encoder(geo_out_dim)
         elif args.object_encoder == 'pointnext':
@@ -344,8 +344,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         else:
             raise ValueError('Unknown object point cloud encoder!')
     else:
-        object_encoder = None 
-    object_encoder = single_object_encoder(geo_out_dim)
+        object_encoder = None
 
     # Optional, make a bbox encoder
     object_clf = None
