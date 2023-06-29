@@ -215,6 +215,13 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     model.train()
     np.random.seed()  # call this to change the sampling of the point-clouds
     batch_keys = make_batch_keys(args)
+
+    ## debug 
+    # all = 0
+    # count = 0 
+    # rela_dis = np.zeros(10)
+    # rela_all = np.zeros(10)
+
     for batch in tqdm.tqdm(data_loader):
         # Move data to gpu
         for k in batch_keys:
@@ -225,6 +232,12 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
         # Forward pass
         res = model(batch)
+
+        ## debug
+        # rela_dis = rela_dis + res['rela_dis']
+        # all = all + batch['target_pos'].size(0)
+        # count = count + res['edge_correct']
+        # rela_all = rela_all + res['rela_sum']
 
         # Backward
         optimizer.zero_grad()
@@ -274,8 +287,8 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             relation_acc_mtr.update(cls_b_acc, batch_size)
             relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
-
-
+    ## debug
+    # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
     metrics['train_total_loss'] = total_loss_mtr.avg
     metrics['train_referential_loss'] = referential_loss_mtr.avg
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
@@ -364,6 +377,12 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
         np.random.seed(args.random_seed)
 
     batch_keys = make_batch_keys(args)
+    
+    ## debug
+    # all = 0
+    # count = 0 
+    # rela_dis = np.zeros(10)
+    # rela_all = np.zeros(10)
 
     for batch in tqdm.tqdm(data_loader):
         # Move data to gpu
@@ -375,6 +394,12 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
 
         # Forward pass
         res = model(batch)
+
+        ## debug
+        # rela_dis = rela_dis + res['rela_dis']
+        # all = all + batch['target_pos'].size(0)
+        # count = count + res['edge_correct']
+        # rela_all = rela_all + res['rela_sum']
 
         all_losses = compute_losses(batch, res, criteria, args)
 
@@ -412,8 +437,9 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
             batch_guess = torch.argmax(res['relation_logits'], -1)
             cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
             relation_acc_mtr.update(cls_b_acc, batch_size)
-            relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)     
-
+            relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)   
+    ## debug  
+    # print('edge_correct:', count/all,  "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
     metrics['test_total_loss'] = total_loss_mtr.avg
     metrics['test_referential_loss'] = referential_loss_mtr.avg
     metrics['test_obj_clf_loss'] = obj_loss_mtr.avg

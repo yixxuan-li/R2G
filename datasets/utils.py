@@ -16,7 +16,19 @@ import re
 from six.moves import cPickle
 from six.moves import range
 import multiprocessing as mp
+from enum import Enum, unique
 from torch.utils.data import DataLoader
+from shapely.geometry import MultiPoint, Point
+from collections import defaultdict
+
+
+@unique
+class OrientedSections(Enum):
+    front = 0
+    right = 1
+    back = 2
+    left = 3
+    grey_area = 4
 
 
 # 
@@ -218,3 +230,103 @@ def mean_rgb_unit_norm_transform(segmented_objects, mean_rgb, unit_norm, epsilon
         xyz /= np.expand_dims(np.expand_dims(max_dist, -1), -1)
         segmented_objects[:, :, :3] = xyz
     return segmented_objects
+
+def get_anchor_sections(extrema, a, dl, df, d2):
+    """
+    @param extrema:
+    @param a:
+    @param dl:
+    @param df:
+    @param d2:
+    @return:
+    """
+    xmin, xmax, ymin, ymax = extrema
+    b = 90 - a
+    a = np.deg2rad(a)
+    b = np.deg2rad(b)
+
+    section_names = [OrientedSections.front, OrientedSections.back, OrientedSections.right, OrientedSections.left]
+    ret = {}
+    for section in section_names:
+        if section.name == 'front':
+            p1 = (xmin, ymin)
+            p2 = (xmin, ymax)
+            p3 = (xmin - df, ymax + (np.sin(a) * df / np.sin(b)))
+            p4 = (xmin - df, ymin - (np.sin(a) * df / np.sin(b)))
+            p5 = (xmin - df - d2, ymin - (np.sin(a) * df / np.sin(b)))
+            p6 = (xmin - df - d2, ymax + (np.sin(a) * df / np.sin(b)))
+            ret[section] = MultiPoint([p1, p2, p3, p4, p5, p6]).convex_hull
+        elif section.name == 'back':
+            p1 = (xmax, ymin)
+            p2 = (xmax, ymax)
+            p3 = (xmax + df, ymax + (np.sin(a) * df / np.sin(b)))
+            p4 = (xmax + df, ymin - (np.sin(a) * df / np.sin(b)))
+            p5 = (xmax + df + d2, ymin - (np.sin(a) * df / np.sin(b)))
+            p6 = (xmax + df + d2, ymax + (np.sin(a) * df / np.sin(b)))
+            ret[section] = MultiPoint([p1, p2, p3, p4, p5, p6]).convex_hull
+        elif section.name == 'left':
+            p1 = (xmin, ymax)
+            p2 = (xmax, ymax)
+            p3 = (xmax + (np.sin(a) * dl / np.sin(b)), ymax + dl)
+            p4 = (xmin - (np.sin(a) * dl / np.sin(b)), ymax + dl)
+            p6 = (xmin - (np.sin(a) * dl / np.sin(b)), ymax + dl + d2)
+            p5 = (xmax + (np.sin(a) * dl / np.sin(b)), ymax + dl + d2)
+            ret[section] = MultiPoint([p1, p2, p3, p4, p5, p6]).convex_hull
+        elif section.name == 'right':
+            p1 = (xmin, ymin)
+            p2 = (xmax, ymin)
+            p3 = (xmax + (np.sin(a) * dl / np.sin(b)), ymin - dl)
+            p4 = (xmin - (np.sin(a) * dl / np.sin(b)), ymin - dl)
+            p5 = (xmin - (np.sin(a) * dl / np.sin(b)), ymin - dl - d2)
+            p6 = (xmax + (np.sin(a) * dl / np.sin(b)), ymin - dl - d2)
+            ret[section] = MultiPoint([p1, p2, p3, p4, p5, p6]).convex_hull
+    return ret
+
+def which_section_point_in(anchor_bbox, anchor_sections, target_point):
+    # Transform the point in order to be compared with the object's
+    # axes aligned bb
+    point = target_point - [anchor_bbox.cx, anchor_bbox.cy, anchor_bbox.cz]
+    point = np.hstack([point, [1]]).reshape(1, -1)
+    rotation = anchor_bbox.inverse_rotation_matrix()
+    axis_aligned_point = np.dot(rotation, point.T).T[:, 0:3]
+    [px, py, _] = axis_aligned_point.reshape(-1)
+
+    for sec_name, section in anchor_sections.items():
+        if section.contains(Point(px, py)):
+            return sec_name
+
+    # No section
+    return OrientedSections.grey_area
+
+
+def get_allocentric_relation(anchor, target):
+    """
+    Calculate the allocentric relation between an anchor and a target object
+    """
+
+    #Set the hyper-parameters(From referit3d)
+    max_df = 1
+    max_dl = 1
+    a = 10
+    d2 = 4
+    positive_occ_thresh = 0.9
+    negative_occ_thresh = 0.08
+
+    df = min(2 * anchor.get_bbox().lx, max_df)
+    dl = min(2 * anchor.get_bbox().ly, max_dl)
+
+    # Get anchor oriented sections
+    [xmin, ymin, _, xmax, ymax, _] = anchor.get_bbox(axis_aligned=False).extrema
+    anchor_bbox_extrema = [xmin, xmax, ymin, ymax]
+    anchor_sections = get_anchor_sections(anchor_bbox_extrema, a, dl, df, d2)
+
+    # Ignore references where an anchor intersects with a target object Can be relaxed
+    iou_2d, i_ratios, a_ratios = target.iou_2d(anchor)
+    if np.any(np.array(i_ratios) > 0.2):
+        return 4
+
+    # get the oriented sections that each target object occupy
+    center_points = target.get_center_position()
+    section_id = which_section_point_in(anchor.get_bbox(), anchor_sections, center_points).value
+
+    return section_id

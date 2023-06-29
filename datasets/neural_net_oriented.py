@@ -55,6 +55,14 @@ def load_referential_data(args, referit_csv, scans_split):
         referit_data.reset_index(drop=True, inplace=True)
         print('Dropping utterances without explicit '
               'mention to the target class {}->{}'.format(n_original, len(referit_data)))
+        
+    # discard between samples
+    n_original = len(referit_data)
+    referit_data = referit_data[referit_data['reference_type'] != 'between']
+    referit_data.reset_index(drop=True, inplace=True)
+    print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
+
+
     if "nr3d" in referit_csv:
         referit_data = referit_data[['tokens', 'instance_type', 'scan_id',
                                     'dataset', 'target_id', 'utterance', 'stimulus_id']]

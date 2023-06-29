@@ -8,6 +8,7 @@ import torch
 # maybe make SegmentedScanDataset with only static functions and then inherit.
 from .utils import check_segmented_object_order, sample_scan_object, pad_samples, objects_bboxes
 from .utils import instance_labels_of_context, mean_rgb_unit_norm_transform, decode_stimulus_string
+from .utils import get_allocentric_relation
 from models import token_embeder
 from torch.nn.utils.rnn import pad_sequence
 
@@ -215,6 +216,23 @@ class ListeningDataset(Dataset):
         res['mc_attr'] = torch.zeros([self.max_context_size, 2])
 
 
+
+        # for j, o in enumerate(context):
+        #     if context[j].has_front_direction:
+        #         for i in range(0, len(context)):  
+        #             allo_relation = get_allocentric_relation(context[j], context[i]) 
+        #             if sr_type in ['front', 'back', 'left', 'right']:
+        #                 if i == target_pos and j == anchor_pos:
+        #                     print(sr_type, allo_relation)
+        #             if allo_relation == 0:
+        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+        #             elif allo_relation == 2:
+        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])   
+        #             elif allo_relation == 1:
+        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+        #             elif allo_relation == 3:
+        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+
         for i, o in enumerate(context):
             i_size = res['obj_size'][i]
             i_position = res['obj_position'][i]
@@ -224,26 +242,31 @@ class ListeningDataset(Dataset):
                 res['mc_attr'][i, 0] = 1
             if np.abs(res['scene_size'][0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(res['scene_size'][1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
                 res['mc_attr'][i, 1] = 1
-
-
-            for j in range(i+1, len(context)):  
-                j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
-                j_position = res['obj_position'][j]
-                res['edge_vector'][i][j] = i_position - j_position
-                res['edge_vector'][j][i] = - res['edge_vector'][i][j]
-                if  True:#self.args is not None and not self.args.relation_pred:
+            # for j in range(i+1, len(context)):  
+            for j in range(0, len(context)):
+                if i == j:
+                    continue
+                if context[j].has_front_direction:
+                    allo_relation = get_allocentric_relation(context[j], context[i]) 
+                    # if sr_type in ['front', 'back', 'left', 'right']:
+                    #     if i == target_pos and j == anchor_pos:
+                    #         print(sr_type, allo_relation)
+                    if allo_relation == 0:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+                    elif allo_relation == 2:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])   
+                    elif allo_relation == 1:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+                    elif allo_relation == 3:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+                if i < j:
+                    j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
+                    j_position = res['obj_position'][j]
+                    res['edge_vector'][i][j] = i_position - j_position
+                    res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                     res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
                     res['edge_distance'][j][i] = res['edge_distance'][i][j]
                     if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
-                        # front back
-                        if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
-                        and (np.abs(res['edge_vector'][i][j][2])*2 < j_size[2] or np.abs(res['edge_vector'][i][j][2])*2 < i_size[2]):
-                            if res['edge_vector'][i][j][0] > 0:
-                                res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-                            elif res['edge_vector'][i][j][0] < 0:
-                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-                                res['edge_attr'][j][i] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
                         # support supported
                         if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
                         and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
@@ -256,18 +279,27 @@ class ListeningDataset(Dataset):
                                 res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
 
                     # above below
-                    if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
-                    and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
-                        if res['edge_vector'][i][j][2] > 0:
-                            res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['tb_attr'][i, 1] -= 1
-                            res['tb_attr'][j, 0] = 0
-                        elif res['edge_vector'][i][j][2] < 0:
-                            res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                            res['tb_attr'][i, 0] = 0
-                            res['tb_attr'][j, 1] -= 1
+                    target_extrema = context[i].get_axis_align_bbox().extrema
+                    target_zmin = target_extrema[2]
+                    target_zmax = target_extrema[5]
+                    anchor_extrema = context[j].get_axis_align_bbox().extrema
+                    anchor_zmin = anchor_extrema[2]
+                    anchor_zmax = anchor_extrema[5]
+                    target_bottom_anchor_top_dist = target_zmin - anchor_zmax
+                    target_top_anchor_bottom_dist = anchor_zmin - target_zmax
+                    iou_2d, i_ratios, a_ratios = context[i].iou_2d(context[j])
+                    i_target_ratio, i_anchor_ratio = i_ratios
+                
+                    if target_bottom_anchor_top_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
+                        res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                        res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                        res['tb_attr'][i, 1] -= 1
+                        res['tb_attr'][j, 0] = 0
+                    elif target_top_anchor_bottom_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
+                        res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                        res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                        res['tb_attr'][i, 0] = 0
+                        res['tb_attr'][j, 1] -= 1
             if res['tb_attr'][i, 1] != 1:
                 res['tb_attr'][i, 1] = 0
             if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
@@ -289,13 +321,11 @@ class ListeningDataset(Dataset):
                 'closest': 5, 
                 'supporting': 6, 
                 'supported-by': 7, 
-                'between': 8,
-                'allocentric': 9
+                'left': 8,
+                'right': 9
                 }
             if sr_type in relation.keys():
                 sr = relation[sr_type]
-            else:
-                sr = relation['allocentric']
             
             res['sr_type'] = sr
 

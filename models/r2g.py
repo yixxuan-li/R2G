@@ -208,6 +208,10 @@ class R2G(nn.Module):
 
         # node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
+        ## Debug
+        # count = 0
+        # rela_dis = np.zeros(10)
+        # rela_sum = np.zeros(10)
 
         ## Construct edge representation
         # Get the relation vocab
@@ -219,6 +223,18 @@ class R2G(nn.Module):
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
             edge_prob_logits = SR_Retrieval(self.mode, object_class_prob, batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            
+            ## Debug
+            # for i in range(batch_size):
+            #     rela_sum[batch['sr_type'][i]] = rela_sum[batch['sr_type'][i]] + 1
+            #     if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], batch['sr_type'][i]] == 1:
+            #         count += 1
+            #     else:
+            #         rela_dis[batch['sr_type'][i]] = rela_dis[batch['sr_type'][i]] + 1
+            # result['edge_correct'] = count
+            # result['rela_dis'] = rela_dis
+            # result['rela_sum'] = rela_sum
+            
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         else:
             edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
@@ -264,7 +280,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     # Tokenizer the properties and concept token
     color_semantic = ['white', 'blue', 'brown', 'black', 'red', 'green', 'grey', 'yellow', 'purple', 'sliver', 'gold', 'pink', 'orange']
-    relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
+    relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right']
     if args.model_attr:
         if args.multi_attr:
             # Tokenizer the attribute
