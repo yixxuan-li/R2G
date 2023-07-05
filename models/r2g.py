@@ -222,11 +222,13 @@ class R2G(nn.Module):
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob, batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob.cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
             
-            ## Debug
+            # ## Debug
             # for i in range(batch_size):
             #     rela_sum[batch['sr_type'][i]] = rela_sum[batch['sr_type'][i]] + 1
+            #     if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 4] + edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 5] == 2:
+            #         print("**********")
             #     if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], batch['sr_type'][i]] == 1:
             #         count += 1
             #     else:

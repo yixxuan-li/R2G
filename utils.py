@@ -289,6 +289,7 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
     ## debug
     # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
+
     metrics['train_total_loss'] = total_loss_mtr.avg
     metrics['train_referential_loss'] = referential_loss_mtr.avg
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg

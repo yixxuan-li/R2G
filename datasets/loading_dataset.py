@@ -247,10 +247,11 @@ class ListeningDataset(Dataset):
                 if i == j:
                     continue
                 if context[j].has_front_direction:
+                    pass
                     allo_relation = get_allocentric_relation(context[j], context[i]) 
-                    # if sr_type in ['front', 'back', 'left', 'right']:
-                    #     if i == target_pos and j == anchor_pos:
-                    #         print(sr_type, allo_relation)
+                #     # if sr_type in ['front', 'back', 'left', 'right']:
+                #     #     if i == target_pos and j == anchor_pos:
+                #     #         print(sr_type, allo_relation)
                     if allo_relation == 0:
                         res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
                     elif allo_relation == 2:
@@ -266,17 +267,17 @@ class ListeningDataset(Dataset):
                     res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                     res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
                     res['edge_distance'][j][i] = res['edge_distance'][i][j]
-                    if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
-                        # support supported
-                        if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
-                        and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
-                            # res['edge_touch'][i][j] = 1
-                            if res['edge_vector'][i][j][2] > 0:
-                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-                            elif res['edge_vector'][i][j][2] < 0:
-                                res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-                                res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                    # if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
+                    #     # support supported
+                    #     if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
+                    #     and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
+                    #         # res['edge_touch'][i][j] = 1
+                    #         if res['edge_vector'][i][j][2] > 0:
+                    #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                    #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                    #         elif res['edge_vector'][i][j][2] < 0:
+                    #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                    #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
 
                     # above below
                     target_extrema = context[i].get_axis_align_bbox().extrema
@@ -289,7 +290,8 @@ class ListeningDataset(Dataset):
                     target_top_anchor_bottom_dist = anchor_zmin - target_zmax
                     iou_2d, i_ratios, a_ratios = context[i].iou_2d(context[j])
                     i_target_ratio, i_anchor_ratio = i_ratios
-                
+                    target_anchor_area_ratio, anchor_target_area_ratio = a_ratios
+                    # Above, Below 
                     if target_bottom_anchor_top_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
                         res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                         res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -300,6 +302,14 @@ class ListeningDataset(Dataset):
                         res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
                         res['tb_attr'][i, 0] = 0
                         res['tb_attr'][j, 1] -= 1
+                    # supported, support
+                    if i_target_ratio > 0.2 and abs(target_bottom_anchor_top_dist) <= 0.15 and target_anchor_area_ratio < 1.5:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                        res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                    if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
+                        res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                        res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+
             if res['tb_attr'][i, 1] != 1:
                 res['tb_attr'][i, 1] = 0
             if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):

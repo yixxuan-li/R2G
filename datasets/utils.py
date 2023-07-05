@@ -309,8 +309,6 @@ def get_allocentric_relation(anchor, target):
     max_dl = 1
     a = 10
     d2 = 4
-    positive_occ_thresh = 0.9
-    negative_occ_thresh = 0.08
 
     df = min(2 * anchor.get_bbox().lx, max_df)
     dl = min(2 * anchor.get_bbox().ly, max_dl)

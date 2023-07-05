@@ -43,7 +43,7 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
     
     if n == 1:
         # get top 1 class for object
-        mask_obj_class = (torch.argmax(obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
+        mask_obj_class = (torch.argmax(full_obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
         # mask_obj_class = torch.where(torch.isinf(mask_obj_class), torch.full_like(mask_obj_class, -1), mask_obj_class)
         # ------------------------ pytorch -----------------------------
         # for i in range(bsz):
