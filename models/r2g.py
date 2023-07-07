@@ -352,7 +352,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     
     
     # make an object (segment) encoder for point-clouds with color
-    if args.obj_cls_alpha + args.relation_pred> 0:
+    if args.obj_cls_alpha + args.relation_pred + args.use_GT > 0:
         if args.object_encoder == 'pnet_pp':
             object_encoder = single_object_encoder(geo_out_dim)
         elif args.object_encoder == 'pointnext':

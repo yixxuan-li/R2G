@@ -1,6 +1,6 @@
 """
 Handle the dataset loading.
-include unpickle_data(), read_lines(), decode_stimulus_string(), max_io_workers(), 
+include unpickle_data(), pickle_data(), read_lines(), decode_stimulus_string(), max_io_workers(), 
         dataset_to_dataloader(), sample_scan_object(), pad_samples(), check_segmented_object_order(),
         objects_bboxes(), instance_labels_of_context(), mean_rgb_unit_norm_transform().
 """
@@ -56,6 +56,17 @@ def unpickle_data(file_name, python2_to_3=False):
         else:
             yield cPickle.load(in_file)
     in_file.close()
+
+
+def pickle_data(file_name, *args):
+    """
+    Using (c)Pickle to save multiple python objects in a single file.
+    """
+    out_file = open(file_name, 'wb')
+    cPickle.dump(len(args), out_file, protocol=2)
+    for item in args:
+        cPickle.dump(item, out_file, protocol=2)
+    out_file.close()
 
 
 
