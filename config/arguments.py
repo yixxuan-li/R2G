@@ -89,6 +89,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--model-attr', type = str2bool, default = False, help = 'True to model object attributes')
     parser.add_argument('--multi-attr', type = str2bool, default = False, help = 'True to use multi-attributes')
     parser.add_argument('--use-GT', type=str2bool, default = True, help='True to use GT')
+    parser.add_argument('--implicity-instruction', type=str2bool, default = False, help='True to use GT')
     #
     # Misc arguments
     #

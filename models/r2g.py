@@ -242,7 +242,7 @@ class R2G(nn.Module):
             edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
-        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float())
+        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float())
             
         # Get the final weights over the nodes
         result['logits'] = final_node_distribution + batch['object_mask'].cuda()
@@ -372,20 +372,20 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     # object_clf = object_decoder_for_clf(geo_out_dim, n_obj_classes)
 
     target_clf = None
-    if args.target_cls_alpha > 0:
+    if args.target_cls_alpha > 0 and not args.implicity_instruction:
         print('Adding a text-classification loss.')
         target_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
 
 
     anchor_clf = None
-    if args.anchor_cls_alpha > 0:
+    if args.anchor_cls_alpha > 0 and not args.implicity_instruction:
         print('Adding a instruction-classification loss.')
         anchor_clf = text_decoder_for_clf(args.word_embedding_dim, n_obj_classes)#lang_out_dim
         # typically there are less active classes for text, but it does not affect the attained text-clf accuracy.
         
     relation_clf = None
-    if args.relation_cls_alpha > 0:
+    if args.relation_cls_alpha > 0 and not args.implicity_instruction:
         relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
     
 

@@ -273,6 +273,7 @@ class NSM(nn.Module):
         
     def forward(
         self,
+        args,
         node_attr,
         description,
         concept_vocab,
@@ -350,12 +351,15 @@ class NSM(nn.Module):
         # for ins_id, instruction in enumerate(instructions[:, :].unbind(1)):        # B x embedding_size
         for ins_id in range(3):
             # calculate intructions' property similarities(both node and relation)
-            # instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
-            instruction_prop = torch.zeros([batch_size, num_property]).cuda()
-            if ins_id == 0 or ins_id == 2:
-                instruction_prop[:, :-1] = 1
+            if args.implicity_instruction:
+                instruction = instructions[:, :].unbind(1)[ins_id]
+                instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
             else:
-                instruction_prop[:, -1] = 1
+                instruction_prop = torch.zeros([batch_size, num_property]).cuda()
+                if ins_id == 0 or ins_id == 2:
+                    instruction_prop[:, :-1] = 1
+                else:
+                    instruction_prop[:, -1] = 1
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN
@@ -367,7 +371,6 @@ class NSM(nn.Module):
                 instruction = relation_instruction
             if ins_id == 2 and target_instruction is not None:
                 instruction = target_instruction
-                t_distribution = distribution             
                 
             distribution = self.nsm_cell(
                 node_attr,
