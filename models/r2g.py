@@ -165,8 +165,10 @@ class R2G(nn.Module):
         concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
         
         instructions = None
+        instructions_mask = None
         if self.args.use_LLM:
             instructions = self.token_embed(batch['ins_token'])
+            instructions_mask = batch['ins_mask']
         # concept_vocab_set = self.token_embed(torch.LongTensor(self.concept_vocab_set).cuda()).float()
 
         # Using GT or not
@@ -250,7 +252,7 @@ class R2G(nn.Module):
             edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
-        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = batch['ins_mask'])
+        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
 
             
         # Get the final weights over the nodes

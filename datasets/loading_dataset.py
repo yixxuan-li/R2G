@@ -172,9 +172,9 @@ class ListeningDataset(Dataset):
                     else:
                         instructions.append('null')
                         instructions_mask.append(0)
-        instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-        instruction_tokens = np.array(instruction_tokens)
-        instructions_mask = np.array(instructions_mask)
+            instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+            instruction_tokens = np.array(instruction_tokens)
+            instructions_mask = np.array(instructions_mask)
 
 
         
@@ -315,19 +315,22 @@ class ListeningDataset(Dataset):
 
         relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
         relation_matrix = relation_matrix[:, context_ind_of_scan, :]
-        
+
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
         res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
-        # model the top and bottom
-        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
-        res['tb_attr'][:len(context), 1] = 2
-        res['tb_attr'][:len(context), 0] = 1
-        # model middle or corner
-        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
 
+        # # model the top and bottom
+        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
+        res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
+        # res['tb_attr'][:len(context), 1] = 2
+        # res['tb_attr'][:len(context), 0] = 1
+        
+        # # model middle or corner
+        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
+        res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
 
 
         # for j, o in enumerate(context):

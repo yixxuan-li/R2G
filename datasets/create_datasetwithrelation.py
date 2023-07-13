@@ -59,9 +59,31 @@ if __name__ == '__main__':
 
 
     for scan in all_scans:
+        scan_center, scan_size = scan.get_center_size()
+        scan_center = np.array(scan_center)
+        scan_size = np.array(scan_size)
+
         len_object = len(scan.three_d_objects)
         relation_matrix = np.zeros((len_object, len_object, 10))
+
+        # model the top and bottom
+        tb_attr = np.zeros((len_object, 2))
+        tb_attr[:, 1] = 2
+        tb_attr[:, 0] = 1
+        # model middle or corner
+        mc_attr = np.zeros((len_object, 2))
+
         for i, oi in enumerate(scan.three_d_objects):
+            # model middle or corner
+            i_size = oi.get_size()
+            i_position = oi.get_center_position()
+            i_scene_translation = i_position - scan_center
+
+            if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1]:
+                mc_attr[i, 0] = 1
+            if np.abs(scan_size[0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(scan_size[1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
+                mc_attr[i, 1] = 1
+
             for j, oj in enumerate(scan.three_d_objects):
                 if i == j:
                     continue
@@ -93,9 +115,13 @@ if __name__ == '__main__':
                     if target_bottom_anchor_top_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
                         relation_matrix[i][j] += [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                         relation_matrix[j][i] += [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+                        tb_attr[i, 1] -= 1
+                        tb_attr[j, 0] = 0
                     elif target_top_anchor_bottom_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
                         relation_matrix[i][j] += [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
                         relation_matrix[j][i] += [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                        tb_attr[i, 0] = 0
+                        tb_attr[j, 1] -= 1
                     # supported, support
                     if i_target_ratio > 0.2 and abs(target_bottom_anchor_top_dist) <= 0.15 and target_anchor_area_ratio < 1.5:
                         relation_matrix[i][j] += [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
@@ -103,8 +129,15 @@ if __name__ == '__main__':
                     if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
                         relation_matrix[i][j] += [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
                         relation_matrix[j][i] += [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+            if tb_attr[i, 1] != 1:
+                tb_attr[i, 1] = 0
+
+            if tb_attr[i, 0] == 1 and tb_attr[i, 1] == 1:
+                tb_attr[i, :] = 0
         print(np.sum(np.sum(np.sum(relation_matrix))))    
         scan.relation_matrix = relation_matrix
+        scan.tb_attr = tb_attr
+        scan.mc_attr = mc_attr
 
 
 
