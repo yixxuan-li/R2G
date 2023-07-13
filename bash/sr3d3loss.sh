@@ -1,9 +1,9 @@
 #!/bin/bash
-CUDA_ID=$0
-LOG_NAME=$1
+CUDA_ID=$1
+LOG_NAME=$2
 
-CUDA_VISIBLE_DEVICES= ${CUDA_ID}
-python train.py\
+
+CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         -scannet-file /data1/liyixuan/data/sr3d_scannet/keep_all_points_with_global_scan_alignment_relation_ready.pkl\
         -referit3D-file /data1/liyixuan/data/sr3d/sr3d.csv\
         --log-dir /home/user/liyixuan/R2G/log\

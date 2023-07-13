@@ -324,13 +324,15 @@ class ListeningDataset(Dataset):
 
         # # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
-        res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
+        if self.args.model_attr or self.args.multi_attr:
+            res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
         # res['tb_attr'][:len(context), 1] = 2
         # res['tb_attr'][:len(context), 0] = 1
         
         # # model middle or corner
         res['mc_attr'] = torch.zeros([self.max_context_size, 2])
-        res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
+        if self.args.model_attr or self.args.multi_attr:
+            res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
 
 
         # for j, o in enumerate(context):
