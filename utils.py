@@ -175,6 +175,10 @@ def make_batch_keys(args, extras=None):
     """depending on the args, different data are used by the listener."""
     batch_keys = ['objects', 'tokens', 'target_pos', 'color_onehot']  # all models use these
     # batch_keys = ['objects', 'tokens', 'target_pos', 'lang_mask', 'color_feature', 'size_feature', 'position_features', 'color_token', 'object_mask']  # cause segmentation fault 
+    
+    if args.use_LLM:
+        batch_keys += ['ins_token', 'ins_mask']
+
     if extras is not None:
         batch_keys += extras
 

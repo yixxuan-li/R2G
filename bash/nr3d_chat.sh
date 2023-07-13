@@ -1,9 +1,11 @@
 #!/bin/bash
 LOG_NAME=$1
 
+
+
 CUDA_VISIBLE_DEVICES=2 python train.py\
         -scannet-file /data1/liyixuan/data/keep_all_points_00_view_with_global_scan_alignment_relation_ready.pkl\
-        -referit3D-file /data1/liyixuan/referit_my/referit3d/data/language/nr3d/nr3d.csv\
+        -referit3D-file /data1/liyixuan/data/p_nr3d.csv\
         --log-dir /home/user/liyixuan/R2G/log\
         --n-workers 8\
         --batch-size 64\
@@ -19,3 +21,4 @@ CUDA_VISIBLE_DEVICES=2 python train.py\
         --use-GT True\
         --model-attr False\
         --multi-attr False\
+        --use_LLM True

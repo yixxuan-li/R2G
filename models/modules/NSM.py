@@ -250,6 +250,7 @@ class NSMCell(nn.Module):
 ## NSM 
 class NSM(nn.Module):
     def __init__(self, 
+                 args,
                  input_size: int, 
                  num_node_properties: int, 
                  num_instructions: int, 
@@ -261,15 +262,17 @@ class NSM(nn.Module):
                  vocab_len = None
                  ):
         super(NSM, self).__init__()
+        if not args.use_LLM:
+            self.instructions_model = InstructionsModel(
+                input_size, num_instructions, description_hidden_size, dropout=dropout
+            )#300, 5+1, 16
+            self.anchor_clf = anchor_clf
+            self.relation_clf = relation_clf
+            self.target_clf = target_clf    
 
-        self.instructions_model = InstructionsModel(
-            input_size, num_instructions, description_hidden_size, dropout=dropout
-        )#300, 5+1, 16
-        self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)
-        self.dropout = nn.Dropout(dropout)
-        self.anchor_clf = anchor_clf
-        self.relation_clf = relation_clf
-        self.target_clf = target_clf        
+        self.num_instructions = num_instructions
+        self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)  
+        self.dropout = nn.Dropout(dropout)  
         
     def forward(
         self,
@@ -286,7 +289,9 @@ class NSM(nn.Module):
         context_size = None,
         lang_mask = None,
         language_len = None,
-        concept_vocab_set = None
+        concept_vocab_set = None,
+        instructions = None,
+        instructions_mask = None
     ):
         """
         Dimensions:
@@ -309,30 +314,34 @@ class NSM(nn.Module):
 
         batch_size, num_node = node_attr.shape[:2]
         num_property = len(property_embeddings)
-        ## transform the description to instruction based on concept vocab
-        ## instructions: B x instruction_length x embedding_size; encoded_questions:  B x LSTM-encoder-hidden-size
-        instructions, encoded_questions = self.instructions_model(
-            concept_vocab, description
-        )
-    
-        ## constrain the 3 instructions
+
+
         anchor_logits = None
         anchor_instruction = None
-        if self.anchor_clf is not None:
-            anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-            anchor_instruction = torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]])
-
         lang_relation_logits = None
         relation_instruction = None
-        if self.relation_clf is not None:
-            lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
-            relation_instruction = torch.matmul(lang_relation_logits, concept_vocab[concept_vocab_seg[-2]:])
-            
         target_logits = None
         target_instruction = None
-        if self.target_clf is not None:
-            target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-            target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+        encoded_questions = None
+        if not args.use_LLM:
+            ## transform the description to instruction based on concept vocab
+            ## instructions: B x instruction_length x embedding_size; encoded_questions:  B x LSTM-encoder-hidden-size
+            instructions, encoded_questions = self.instructions_model(
+                concept_vocab, description
+            )
+    
+            ## constrain the 3 instructions
+            if self.anchor_clf is not None:
+                anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
+                anchor_instruction = torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]])
+
+            if self.relation_clf is not None:
+                lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
+                relation_instruction = torch.matmul(lang_relation_logits, concept_vocab[concept_vocab_seg[-2]:])
+                
+            if self.target_clf is not None:
+                target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
+                target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)
@@ -347,9 +356,9 @@ class NSM(nn.Module):
         
         
         prob = distribution.unsqueeze(1)
-        # # Simulate execution of finite automaton
+        # # Simulate execution of finite automation
         # for ins_id, instruction in enumerate(instructions[:, :].unbind(1)):        # B x embedding_size
-        for ins_id in range(3):
+        for ins_id in range(self.num_instructions):
             # calculate intructions' property similarities(both node and relation)
             if args.implicity_instruction:
                 instruction = instructions[:, :].unbind(1)[ins_id]

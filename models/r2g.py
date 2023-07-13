@@ -121,7 +121,8 @@ class R2G(nn.Module):
                 target_clf = None
             if args.anchor_cls_alpha == 0:
                 anchor_clf = None
-            self.nsm = NSM( input_size = args.word_embedding_dim, 
+            self.nsm = NSM( args,
+                            input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
                             description_hidden_size = 256,
@@ -130,7 +131,9 @@ class R2G(nn.Module):
                             anchor_clf = anchor_clf
                             )
         else:
-            self.nsm = NSM( input_size = args.word_embedding_dim, 
+            self.nsm = NSM( 
+                            args,
+                            input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
                             description_hidden_size = 256
@@ -160,6 +163,10 @@ class R2G(nn.Module):
         language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
         property_embedding =  self.token_embed(torch.LongTensor(self.property_embedding).cuda()).float()
         concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
+        
+        instructions = None
+        if self.args.use_LLM:
+            instructions = self.token_embed(batch['ins_token'])
         # concept_vocab_set = self.token_embed(torch.LongTensor(self.concept_vocab_set).cuda()).float()
 
         # Using GT or not
@@ -167,6 +174,7 @@ class R2G(nn.Module):
             object_class_prob = batch['gt_class'][:, :, :-1].cuda()
         else:
             object_class_prob = F.softmax(result['class_logits'], dim =-1)
+
         # Construct node representation 
         batch_size, num_objects, _ = object_class_prob.shape
         # Identity information 
@@ -242,7 +250,8 @@ class R2G(nn.Module):
             edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
-        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float())
+        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = batch['ins_mask'])
+
             
         # Get the final weights over the nodes
         result['logits'] = final_node_distribution + batch['object_mask'].cuda()

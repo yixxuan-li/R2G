@@ -63,13 +63,21 @@ def load_referential_data(args, referit_csv, scans_split):
         referit_data.reset_index(drop=True, inplace=True)
         print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
 
+    if  not args.use_LLM:
+        if "nr3d" in referit_csv:
+            referit_data = referit_data[['tokens', 'instance_type', 'scan_id',
+                                        'dataset', 'target_id', 'utterance', 'stimulus_id']]
+        elif "sr3d" in referit_csv:
+            referit_data = referit_data[['tokens', 'instance_type', 'scan_id',
+                                        'dataset', 'target_id', 'utterance', 'stimulus_id', 'anchor_ids', 'reference_type']]
+    else:
+        if "nr3d" in referit_csv:
+            referit_data = referit_data[['tokens', 'instance_type', 'scan_id', 'instruction',
+                                        'dataset', 'target_id', 'utterance', 'stimulus_id']]
+        elif "sr3d" in referit_csv:
+            referit_data = referit_data[['tokens', 'instance_type', 'scan_id', 'instruction',
+                                        'dataset', 'target_id', 'utterance', 'stimulus_id', 'anchor_ids', 'reference_type']]
 
-    if "nr3d" in referit_csv:
-        referit_data = referit_data[['tokens', 'instance_type', 'scan_id',
-                                    'dataset', 'target_id', 'utterance', 'stimulus_id']]
-    elif "sr3d" in referit_csv:
-        referit_data = referit_data[['tokens', 'instance_type', 'scan_id',
-                                    'dataset', 'target_id', 'utterance', 'stimulus_id', 'anchor_ids', 'reference_type']]
     referit_data.tokens = referit_data['tokens'].apply(literal_eval)
 
     # Add the is_train data to the pandas data frame (needed in creating data loaders for the train and test)
