@@ -96,4 +96,4 @@ class Attr_Estimate(nn.Module):
  
 
         # return ls[:, 1:, :], tl[:, 1:, :], mc[:, 1:, :], tb[:, 1:, :], lr[:, 1:, :], losh[:, 1:, :]
-        return lr[:, 1:, :], curve[:, 1:, :]
+        return lr[:, 1:, :], curve[:, 1:, :1]

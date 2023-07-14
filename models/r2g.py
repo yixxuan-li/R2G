@@ -124,7 +124,7 @@ class R2G(nn.Module):
             self.nsm = NSM( args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 7, 
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
@@ -135,7 +135,7 @@ class R2G(nn.Module):
                             args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 7, 
                             description_hidden_size = 256
                             )
 
@@ -201,16 +201,17 @@ class R2G(nn.Module):
                 curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]], ' c h -> b c h', b = batch_size))
 
                 node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
-
             else:
-                ls_logits, tl_logits, mc_logits, tb_logits, lr_logits, losh_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
-                obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['position_features'].cuda()], dim = 1), \
-                obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['size_feature'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+                ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
+                lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1),\
+                    obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1),\
+                    obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-                node_attr = torch.cat([ls_logits, tl_logits, batch['mc_attr'], batch['tb_attr'], lr_logits, losh_logits], dim = -1)
-
+                obj_attr_logits = torch.cat([ls_logits, tl_logits, batch['mc_attr'], batch['tb_attr'], lr_logits, losh_logits, curve_logits], dim = -1)
+                obj_attr_semantic = torch.matmul(obj_attr_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
                 # obj_attr = torch.cat([F.softmax(ls_logits, dim = -1), F.softmax(tl_logits, dim = -1), F.softmax(mc_logits, dim = -1), F.softmax(tb_logits, dim = -1), F.softmax(lr_logits, dim = -1), F.softmax(losh_logits, dim = -1)], dim = -1)
                 #          B x N x k       K x embedding 
+                node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), obj_attr_semantic.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
         else:
             node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
 

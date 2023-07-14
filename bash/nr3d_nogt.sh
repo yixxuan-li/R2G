@@ -2,7 +2,7 @@
 # CUDA_ID=$1
 LOG_NAME=$1
 
-CUDA_VISIBLE_DEVICES=1 python train.py\
+CUDA_VISIBLE_DEVICES=0 python train.py\
         -scannet-file /data1/liyixuan/data/keep_all_points_00_view_with_global_scan_alignment_relation_ready.pkl\
         -referit3D-file /data1/liyixuan/referit_my/referit3d/data/language/nr3d/nr3d.csv\
         --log-dir /home/user/liyixuan/R2G/log\
