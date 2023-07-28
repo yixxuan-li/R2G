@@ -11,7 +11,7 @@ python train.py\
         --batch-size 32\
         --init-lr 1e-4\
         --experiment-tag ${LOG_NAME}\
-        --obj-cls-alpha 0.2\
+        --obj-cls-alpha 0.3\
         --target-cls-alpha 0.2\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\

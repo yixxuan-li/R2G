@@ -48,6 +48,8 @@ def load_referential_data(args, referit_csv, scans_split):
     :return:
     """
     referit_data = pd.read_csv(referit_csv)
+    print(referit_csv)
+
 
     if args.mentions_target_class_only:
         n_original = len(referit_data)
@@ -56,12 +58,15 @@ def load_referential_data(args, referit_csv, scans_split):
         print('Dropping utterances without explicit '
               'mention to the target class {}->{}'.format(n_original, len(referit_data)))
         
-    # discard between samples
-    if "sr3d" in referit_csv:
-        n_original = len(referit_data)
-        referit_data = referit_data[referit_data['reference_type'] != 'between']
-        referit_data.reset_index(drop=True, inplace=True)
-        print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
+    # # discard between samples
+    # if "sr3d" in referit_csv:
+    #     n_original = len(referit_data)
+    #     referit_data = referit_data[referit_data['reference_type'] != 'between']
+    #     referit_data.reset_index(drop=True, inplace=True)
+    #     print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
+
+    # referit_data.drop_duplicates(subset=['scan_id'], inplace=False)
+    print(len(referit_data))
 
 
     if  not args.use_LLM:

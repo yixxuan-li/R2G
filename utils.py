@@ -203,23 +203,14 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     :param args:
     :return:
     """
-    metrics = dict()  # holding the losses/accuracies
-    total_loss_mtr = AverageMeter()
-    referential_loss_mtr = AverageMeter()
-    obj_loss_mtr = AverageMeter()
-    ref_acc_mtr = AverageMeter()
-    cls_acc_mtr = AverageMeter()
-    target_acc_mtr = AverageMeter()
-    anchor_acc_mtr = AverageMeter()
-    anchor_loss_mtr = AverageMeter()
-    relation_acc_mtr = AverageMeter()
-    relation_loss_mtr = AverageMeter()
 
     # Set the model in training mode
-    model.train()
+    model.eval()
     np.random.seed()  # call this to change the sampling of the point-clouds
     batch_keys = make_batch_keys(args)
 
+
+    scan_relation = {}
     ## debug 
     # all = 0
     # count = 0 
@@ -236,76 +227,76 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
         # Forward pass
         res = model(batch)
+        scan_info = {}
+        scan_info['obj_id'] = batch['obj_id']
+        scan_info['rela_dis'] = res
+        scan_relation[batch['scan_id'][0]] = scan_info
+        # scan_relation[batch['scan_id']]['obj_id'] = batch['obj_id']
+        # scan_relation[batch['scan_id']]['rela_dis'] = res
 
-        ## debug
-        # rela_dis = rela_dis + res['rela_dis']
-        # all = all + batch['target_pos'].size(0)
-        # count = count + res['edge_correct']
-        # rela_all = rela_all + res['rela_sum']
+    #     ## debug
+    #     # rela_dis = rela_dis + res['rela_dis']
+    #     # all = all + batch['target_pos'].size(0)
+    #     # count = count + res['edge_correct']
+    #     # rela_all = rela_all + res['rela_sum']
 
-        # Backward
-        optimizer.zero_grad()
-        all_losses = compute_losses(batch, res, criteria, args)
-        total_loss = all_losses['total_loss']
-        total_loss.backward()
-        optimizer.step()
 
-        # for name, parms in model.named_parameters():
-        #     if 'nsm' in name:
-        #         # print('-->name:', name, '-->grad_requirs:', parms.requires_grad,)
-        #         print('-->name:', name, '-->grad_requirs:', parms.requires_grad, '--weight', torch.mean(parms.data), ' -->grad_value:', torch.mean(parms.grad))
+    #     # for name, parms in model.named_parameters():
+    #     #     if 'nsm' in name:
+    #     #         # print('-->name:', name, '-->grad_requirs:', parms.requires_grad,)
+    #     #         print('-->name:', name, '-->grad_requirs:', parms.requires_grad, '--weight', torch.mean(parms.data), ' -->grad_value:', torch.mean(parms.grad))
 
-        # Update the loss and accuracy meters
-        target = batch['target_pos']
-        batch_size = target.size(0)  # B x N_Objects
-        total_loss_mtr.update(total_loss.item(), batch_size)
+    #     # Update the loss and accuracy meters
+    #     target = batch['target_pos']
+    #     batch_size = target.size(0)  # B x N_Objects
+    #     total_loss_mtr.update(total_loss.item(), batch_size)
 
-        # referential_loss_mtr.update(all_losses['referential_loss'].item(), batch_size)
-        # TODO copy the ref-loss to homogeneize the code
-        referential_loss_mtr.update(all_losses['referential_loss'], batch_size)
+    #     # referential_loss_mtr.update(all_losses['referential_loss'].item(), batch_size)
+    #     # TODO copy the ref-loss to homogeneize the code
+    #     referential_loss_mtr.update(all_losses['referential_loss'], batch_size)
 
-        predictions = torch.argmax(res['logits'], dim=1)
-        guessed_correctly = torch.mean((predictions == target).double()).item()
+    #     predictions = torch.argmax(res['logits'], dim=1)
+    #     guessed_correctly = torch.mean((predictions == target).double()).item()
 
-        ref_acc_mtr.update(guessed_correctly, batch_size)
+    #     ref_acc_mtr.update(guessed_correctly, batch_size)
 
-        if args.obj_cls_alpha > 0:
-            cls_b_acc, _ = cls_pred_stats(res['class_logits'], batch['class_labels'], ignore_label=pad_idx)
-            cls_acc_mtr.update(cls_b_acc, batch_size)
-            obj_loss_mtr.update(all_losses['obj_clf_loss'].item(), batch_size)
+    #     if args.obj_cls_alpha > 0:
+    #         cls_b_acc, _ = cls_pred_stats(res['class_logits'], batch['class_labels'], ignore_label=pad_idx)
+    #         cls_acc_mtr.update(cls_b_acc, batch_size)
+    #         obj_loss_mtr.update(all_losses['obj_clf_loss'].item(), batch_size)
 
-        if args.target_cls_alpha > 0:
-            batch_guess = torch.argmax(res['target_logits'], -1)
-            cls_b_acc = torch.mean((batch_guess == batch['target_class']).double())
-            target_acc_mtr.update(cls_b_acc, batch_size)
+    #     if args.target_cls_alpha > 0:
+    #         batch_guess = torch.argmax(res['target_logits'], -1)
+    #         cls_b_acc = torch.mean((batch_guess == batch['target_class']).double())
+    #         target_acc_mtr.update(cls_b_acc, batch_size)
 
-        if args.anchor_cls_alpha > 0:
-            batch_guess = torch.argmax(res['anchor_logits'], -1)
-            cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
-            anchor_acc_mtr.update(cls_b_acc, batch_size)
-            anchor_loss_mtr.update(all_losses['anchor_clf_loss'].item(), batch_size)
+    #     if args.anchor_cls_alpha > 0:
+    #         batch_guess = torch.argmax(res['anchor_logits'], -1)
+    #         cls_b_acc = torch.mean((batch_guess == batch['anchor_class'].cuda()).double())
+    #         anchor_acc_mtr.update(cls_b_acc, batch_size)
+    #         anchor_loss_mtr.update(all_losses['anchor_clf_loss'].item(), batch_size)
 
         
-        if args.relation_cls_alpha > 0:
-            batch_guess = torch.argmax(res['relation_logits'], -1)
-            cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
-            relation_acc_mtr.update(cls_b_acc, batch_size)
-            relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
-    ## debug
-    # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
+    #     if args.relation_cls_alpha > 0:
+    #         batch_guess = torch.argmax(res['relation_logits'], -1)
+    #         cls_b_acc = torch.mean((batch_guess == batch['sr_type'].cuda()).double())
+    #         relation_acc_mtr.update(cls_b_acc, batch_size)
+    #         relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
+    # ## debug
+    # # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
 
-    metrics['train_total_loss'] = total_loss_mtr.avg
-    metrics['train_referential_loss'] = referential_loss_mtr.avg
-    metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
-    metrics['train_referential_acc'] = ref_acc_mtr.avg
-    metrics['train_object_cls_acc'] = cls_acc_mtr.avg
-    metrics['train_target_cls_acc'] = target_acc_mtr.avg
-    metrics['train_anchor_cls_acc'] = anchor_acc_mtr.avg
-    metrics['train_anchor_loss'] = anchor_loss_mtr.avg
-    metrics['train_relation_cls_loss'] = relation_loss_mtr.avg
-    metrics['train_relation_cls_acc'] = relation_acc_mtr.avg
+    # metrics['train_total_loss'] = total_loss_mtr.avg
+    # metrics['train_referential_loss'] = referential_loss_mtr.avg
+    # metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
+    # metrics['train_referential_acc'] = ref_acc_mtr.avg
+    # metrics['train_object_cls_acc'] = cls_acc_mtr.avg
+    # metrics['train_target_cls_acc'] = target_acc_mtr.avg
+    # metrics['train_anchor_cls_acc'] = anchor_acc_mtr.avg
+    # metrics['train_anchor_loss'] = anchor_loss_mtr.avg
+    # metrics['train_relation_cls_loss'] = relation_loss_mtr.avg
+    # metrics['train_relation_cls_acc'] = relation_acc_mtr.avg
 
-    return metrics
+    return scan_relation
 
 
 def compute_losses(batch, res, criterion_dict, args):
@@ -673,7 +664,7 @@ def save_state_dicts(checkpoint_file, epoch=None, **kwargs):
     torch.save(checkpoint, checkpoint_file)
 
 
-def load_state_dicts(checkpoint_file, map_location=None, **kwargs):
+def load_state_dicts(checkpoint_file, obj_cls=None, map_location=None, **kwargs):
     """Load torch items from saved state_dictionaries.
     """
     if map_location is None:
@@ -681,6 +672,25 @@ def load_state_dicts(checkpoint_file, map_location=None, **kwargs):
     else:
         checkpoint = torch.load(checkpoint_file, map_location=map_location)
 
+    if obj_cls is not None:
+        if map_location is None:
+            obj_cls = torch.load(obj_cls)
+        else:
+            obj_cls = torch.load(obj_cls, map_location=map_location)
+
+    # if obj_cls is not None:
+    #     for key, value in kwargs.items():
+    #         if key == 'model':
+    #             obj_pretrain = {k : v for k, v in obj_cls[key].items() if 'obj' in k}
+    #             print(obj_pretrain.keys())
+    #             pretrain = {k : v for k, v in checkpoint[key].items() if 'obj' in k}
+    #             value.load_state_dict(obj_pretrain, strict = False)
+    #             value.load_state_dict(pretrain, strict = False)
+    #         else:
+    #             value.load_state_dict(checkpoint[key])
+    # else:
+    #     for key, value in kwargs.items():
+    #         value.load_state_dict(checkpoint[key])
     for key, value in kwargs.items():
         value.load_state_dict(checkpoint[key])
 

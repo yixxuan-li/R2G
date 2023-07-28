@@ -142,62 +142,62 @@ class NSMCell(nn.Module):
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
         # B x N x H
-        # if ins_id  == 0 or ins_id == 2:
-        node_scores = self.dropout(
-            self.nonlinearity(
-                torch.sum(
-                        F.normalize(
-                            torch.mul(
-                                repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
-                                torch.matmul(
-                                    torch.mul(
-                                        repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
-                                        rearrange(node_attr, 'b n p h -> b p n h')
-                                        ),
-                                    repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
-                                )
-                            )
-                        ),
-                    dim=1,
-                )# B x P x N x H -> B x N x H 
-            )
-        )
-
-
-        # if ins_id %2 != 0:
-        edge_scores = self.dropout(
-            self.nonlinearity(
-                            rearrange(
-                                F.normalize(
+        if ins_id  == 0 or ins_id == 2:
+            node_scores = self.dropout(
+                self.nonlinearity(
+                    torch.sum(
+                            F.normalize(
+                                torch.mul(
+                                    repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
                                     torch.matmul(
                                         torch.mul(
-                                            repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
-                                            rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
-                                        ),
-                                        repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
+                                            repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
+                                            rearrange(node_attr, 'b n p h -> b p n h')
+                                            ),
+                                        repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
                                     )
-                                ), 
-                                'b (n1 n2) h -> b n1 n2 h', n1 = num_node
-                            )
-            )# B x N x N x H
-        )
+                                )
+                            ),
+                        dim=1,
+                    )# B x P x N x H -> B x N x H 
+                )
+            )
+
+
+        if ins_id %2 != 0:
+            edge_scores = self.dropout(
+                self.nonlinearity(
+                                rearrange(
+                                    F.normalize(
+                                        torch.matmul(
+                                            torch.mul(
+                                                repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
+                                                rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
+                                            ),
+                                            repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
+                                        )
+                                    ), 
+                                    'b (n1 n2) h -> b n1 n2 h', n1 = num_node
+                                )
+                )# B x N x N x H
+            )
 
             
         # shift the attention to their most relavant neibors; B x N x H -> B x N
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         # if ins_id % 2 == 0:
         #     next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2), dim =1)
-        # if ins_id == 0:
-        next_distribution_states = F.softmax(
-            rearrange(
-                torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
-            ) + node_mask,
-            dim = 1
-        )
-        # if ins_id == 6:
-        #     next_distribution_states = rearrange(
-        #             torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
-        #         )
+        if ins_id == 0:
+            next_distribution_states = F.softmax(
+                rearrange(
+                    torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
+                ) + node_mask,
+                dim = 1
+            )
+        if ins_id == 2:
+            next_distribution_states = rearrange(
+                    torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
+                )
     
             
         # shift the attention to their most relavant edges;  B x N
@@ -210,14 +210,14 @@ class NSMCell(nn.Module):
         #     dim = 1 
         # )
         
-        # if ins_id %2 != 0:
-        next_distribution_relations = F.softmax(
-            (torch.sum(
-                    edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
-                ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
-            ).squeeze(2) + node_mask,# B x N
-            dim = 1 
-        )
+        if ins_id %2 != 0:
+            next_distribution_relations = F.softmax(
+                (torch.sum(
+                        edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
+                    ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
+                ).squeeze(2) + node_mask,# B x N
+                dim = 1 
+            )
             
         # Compute next distribution
         # B x N
@@ -231,22 +231,14 @@ class NSMCell(nn.Module):
         # next_distribution = (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
         #     + (1 - relation_prop_similarity).view(batch_size, 1)
         #     * next_distribution_states)  #(B x N)   
-        # if ins_id %2 == 0:
-        #     next_distribution = next_distribution_states  #(B x N)
-        #     # next_distribution = next_distribution * distribution
-        # elif ins_id %2 != 0:   
-        #     next_distribution = next_distribution_relations#(B X N)
-    
-        if ins_id != 6:
-            _distribution = torch.mul(repeat(1 - relation_prop_similarity, 'b -> b n', n = num_node), next_distribution_states) + torch.mul(repeat(relation_prop_similarity, 'b -> b n ', n = num_node), next_distribution_relations)
-            next_distribution = F.softmax(distribution +  _distribution, dim = -1)#(B x N)
+        if ins_id %2 == 0:
+            next_distribution = next_distribution_states  #(B x N)
             # next_distribution = next_distribution * distribution
-        else:   
-            _distribution = torch.mul(repeat(1 - relation_prop_similarity, 'b -> b n', n = num_node), next_distribution_states) + torch.mul(repeat(relation_prop_similarity, 'b -> b n ', n = num_node), next_distribution_relations)
-            next_distribution = distribution +  _distribution#(B x N)
+        elif ins_id %2 != 0:
+            next_distribution = next_distribution_relations#(B X N)
             
-        # if ins_id == 2:
-        #     next_distribution = next_distribution * distribution
+        if ins_id == 2:
+            next_distribution = next_distribution * distribution
                                           
         return next_distribution
 
@@ -377,7 +369,8 @@ class NSM(nn.Module):
                     instruction_prop[:, -1] = 1
                 else:
                     instruction_prop[:, :-1] = 1
-            instruction_prop = torch.mul(instruction_prop,  repeat(instructions_mask[:, ins_id], 'b -> b n', n = num_property))
+            if instructions_mask is not None:
+                instruction_prop = torch.mul(instruction_prop,  repeat(instructions_mask[:, ins_id], 'b -> b n', n = num_property))
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN

@@ -92,7 +92,7 @@ class R2G(nn.Module):
 
         # Classifier heads
         self.object_clf = None
-        if args.obj_cls_alpha != 0:
+        if (args.obj_cls_alpha != 0) or not args.use_GT:
             self.object_clf = object_clf
         
         
@@ -124,7 +124,7 @@ class R2G(nn.Module):
             self.nsm = NSM( args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 7, 
+                            num_instructions = 3, 
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
@@ -135,7 +135,7 @@ class R2G(nn.Module):
                             args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 7, 
+                            num_instructions = 3, 
                             description_hidden_size = 256
                             )
 
@@ -144,7 +144,7 @@ class R2G(nn.Module):
     def __call__(self, batch: dict) -> dict:
         result = defaultdict(lambda: None)
         # Get features for each segmented scan object based on color and point-cloud
-        if self.args.obj_cls_alpha + self.args.model_attr + self.args.relation_pred> 0:
+        if (self.args.obj_cls_alpha + self.args.model_attr + self.args.relation_pred> 0) or not self.args.use_GT:
             # Get features for each segmented scan object based on color and point-cloud
             objects_features = get_siamese_features(self.object_encoder, batch['objects'],
                                                     aggregator=torch.stack)  # B X N_Objects x object-latent-dim
@@ -233,7 +233,7 @@ class R2G(nn.Module):
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob.cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob.cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'], n = 1).cuda().float()
             
             # ## Debug
             # for i in range(batch_size):
@@ -269,7 +269,7 @@ class R2G(nn.Module):
         if self.args.anchor_cls_alpha > 0:
             result['anchor_logits'] = anchor_logits
 
-        return result
+        return edge_prob_logits
 
 def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: int, class_to_index: dict) -> nn.Module:
     """
@@ -364,7 +364,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     
     
     # make an object (segment) encoder for point-clouds with color
-    if args.obj_cls_alpha + args.relation_pred + args.use_GT > 0:
+    if (args.obj_cls_alpha + args.relation_pred > 0) or not args.use_GT:
         if args.object_encoder == 'pnet_pp':
             object_encoder = single_object_encoder(geo_out_dim)
         elif args.object_encoder == 'pointnext':
@@ -378,7 +378,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     # Optional, make a bbox encoder
     object_clf = None
-    if args.obj_cls_alpha > 0:
+    if (args.obj_cls_alpha > 0) or not args.use_GT:
         print('Adding an object-classification loss.')
         object_clf = object_decoder_for_clf(geo_out_dim, n_obj_classes)
     # object_clf = object_decoder_for_clf(geo_out_dim, n_obj_classes)

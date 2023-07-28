@@ -5,10 +5,10 @@ LOG_NAME=$2
 
 CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         -scannet-file /data1/liyixuan/data/sr3d_scannet/keep_all_points_with_global_scan_alignment_relation_ready.pkl\
-        -referit3D-file /data1/liyixuan/data/sr3d/sr3d.csv\
+        -referit3D-file /data1/liyixuan/data/sr3d/sr3d_unique.csv\
         --log-dir /home/user/liyixuan/R2G/log\
         --n-workers 8\
-        --batch-size 64\
+        --batch-size 1\
         --init-lr 1e-4\
         --experiment-tag ${LOG_NAME}\
         --obj-cls-alpha 0.0\

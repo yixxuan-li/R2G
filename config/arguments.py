@@ -34,6 +34,7 @@ def parse_arguments(notebook_options=None):
     #
     parser.add_argument('--log-dir', type=str, help='where to save training-progress, model, etc')
     parser.add_argument('--resume-path', type=str, help='model-path to resume')
+    parser.add_argument('--obj-cls-path', type=str, help='model-path to resume')
     parser.add_argument('--config-file', type=str, default=None, help='config file')
 
     #
@@ -50,7 +51,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--mentions-target-class-only', type=str2bool, default=True,
                         help='If True, drop references that do not explicitly mention the target-class.')
     parser.add_argument('--min-word-freq', type=int, default=3)
-    parser.add_argument('--max-test-objects', type=int, default=88)
+    parser.add_argument('--max-test-objects', type=int, default=55)
 
     #
     # Training arguments
@@ -156,7 +157,6 @@ def parse_arguments(notebook_options=None):
         out = osp.join(args.log_dir, 'config.json.txt')
         with open(out, 'w') as f_out:
             json.dump(vars(args), f_out, indent=4, sort_keys=True)
-
     return args
 
 

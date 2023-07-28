@@ -1,4 +1,6 @@
 import numpy as np
+import random
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from functools import partial
 from .utils import dataset_to_dataloader, max_io_workers
@@ -180,7 +182,7 @@ class ListeningDataset(Dataset):
         
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, ref['scan_id']
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -241,7 +243,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask = self.get_reference_data(index)
+        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask, scan_id = self.get_reference_data(index)
         # Make a context of distractors
         context, context_ind_of_scan = self.prepare_distractors(scan, target, anchor)
         # print(scan.relation_matrix)
@@ -279,6 +281,8 @@ class ListeningDataset(Dataset):
         res['scene_center'] = np.array(res['scene_center'])
         res['scene_size'] = np.array(res['scene_size'])
 
+
+        res['obj_id'] = np.array([o.object_id for o in context])
         
 
         # take care of padding, so that a batch has same number of N-objects across scans.
@@ -453,7 +457,8 @@ class ListeningDataset(Dataset):
                 }
             if sr_type in relation.keys():
                 sr = relation[sr_type]
-            
+            else:
+                sr = 0
             res['sr_type'] = sr
 
         res['lang_mask'] = torch.Tensor(lang_mask)
@@ -470,9 +475,20 @@ class ListeningDataset(Dataset):
         res['target_class'] = self.class_to_idx[target.instance_label]
         if anchor is not None:
             res['anchor_class'] = self.class_to_idx[anchor.instance_label]
+        # res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
+        # for i in range(res['context_size']):
+        #     res['gt_class'][i, res['class_labels'][i]] = 1
+
+        error_num = int(0.05* res['context_size'])
+        l = range(0, res['context_size'])
+        error_ind = random.sample(l, error_num)
+
         res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
         for i in range(res['context_size']):
-            res['gt_class'][i, res['class_labels'][i]] = 1
+            if i in error_ind:
+                res['gt_class'][i] = F.softmax(torch.tensor(np.random.rand(len(self.class_to_idx))), dim = -1)
+            else:
+                res['gt_class'][i, res['class_labels'][i]] = 1
 
         
         res['target_pos'] = target_pos
@@ -504,6 +520,8 @@ class ListeningDataset(Dataset):
             # get scan_id 
             res['scan_id'] = self.references.loc[index].scan_id
 
+        res['scan_id'] = scan_id
+
         return res
 
 
@@ -519,8 +537,8 @@ def make_data_loaders(args, referit_data, vocab, class_to_idx, scans, mean_rgb):
     object_transformation = partial(mean_rgb_unit_norm_transform, mean_rgb=mean_rgb,
                                     unit_norm=args.unit_sphere_norm)
     for split in splits:
-        mask = is_train if split == 'train' else ~is_train
-        d_set = referit_data[mask]
+        # mask = is_train if split == 'train' else ~is_train
+        d_set = referit_data
         d_set.reset_index(drop=True, inplace=True)
 
         max_distractors = args.max_distractors if split == 'train' else args.max_test_objects - 1
