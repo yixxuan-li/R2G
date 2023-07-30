@@ -147,7 +147,8 @@ py::array_t<double> get_relation(
     }
 
 
-
+    py::print(1, 2.0, "three"); // 1 2.0 three
+    py::print(out_relation == out); // 1 2.0 three
     return out;
 }
 

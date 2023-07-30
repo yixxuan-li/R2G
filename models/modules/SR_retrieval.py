@@ -3,8 +3,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from itertools import combinations
-import sys
-sys.path.append('/data1/liyixuan/referit_my/referit3d/models/backbone/example/build')
+import sys 
+sys.path.append("/data1/liyixuan/referit_my/referit3d/models/backbone/example/build")
 import relation
  
 # # nr3d
@@ -19,7 +19,7 @@ sr_index = [[9, 10, 130, 148, 193, 232, 246, 250, 252, 274, 298, 329, 361, 447, 
 
 
 
-def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 1):
+def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 1, k =3):
     
     """used to generated the relation that need to be compared with objects in the same class for object
     Args:
@@ -41,7 +41,7 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
     obj_prob =  F.softmax(obj_prob, dim = -1) # B x N x mini-Class
     
     
-    if n == 1:
+    if n == 0:
         # get top 1 class for object
         mask_obj_class = (torch.argmax(full_obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
         # mask_obj_class = torch.where(torch.isinf(mask_obj_class), torch.full_like(mask_obj_class, -1), mask_obj_class)
@@ -74,14 +74,14 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
     else:
         
         # get top n class for objects
-        topn_class, topn_class_indx = (torch.sort(obj_prob, dim = -1, descending = False))## B x  N x n_object_class
-        topn_class_prob = F.softmax(topn_class[:, :, :n], dim =-1)# B x N x n, represent top n class probability
+        topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = False))## B x  N x n_object_class
+        topn_class = F.softmax(topn_class[:, :, :k], dim =-1)# B x N x n, represent top n class probability
+        topn_class_prob = topn_class[:, :, :n]# B x N x n, represent top n class probability
         topn_class_indx = topn_class_indx[:, :, :n]# B x N x n, represent top n class index
         mask_obj_class = topn_class_indx + object_mask.unsqueeze(-1).repeat(1, 1, n) # B x N x n; represent the object class 
         
         batch_obj_class_line = mask_obj_class.view(bsz, num_obj * n) # B x (N x n)
         batch_obj_prob_line = topn_class_prob.view(bsz, num_obj * n) # B x (N x n)
-        
         
         # -------------------------- c++ ------------------------------
         origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line.numpy(), batch_obj_prob_line.numpy(), origin_relation, obj_distance.squeeze(-1), context_size, n))

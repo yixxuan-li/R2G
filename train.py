@@ -200,12 +200,12 @@ if __name__ == '__main__':
             best_test_epoch = loaded_epoch
             best_test_acc = lr_scheduler.best
             print('Loaded model had {} test-accuracy in the corresponding dataset used when trained.'.format(
-                best_test_acc))
+                best_test_acc))    
         else:
             print('Parameters that do not allow gradients to be back-propped:')
             ft_everything = False
             for name, param in model.named_parameters():
-                if "object" not in name:
+                if "object" in name:
                     param.requires_grad = False
                 if not param.requires_grad:
                     print(name)

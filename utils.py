@@ -682,6 +682,9 @@ def load_state_dicts(checkpoint_file, map_location=None, **kwargs):
         checkpoint = torch.load(checkpoint_file, map_location=map_location)
 
     for key, value in kwargs.items():
+        # if key == 'model':
+        #     value.load_state_dict(checkpoint[key], strict=False)
+        # else:
         value.load_state_dict(checkpoint[key])
 
     epoch = checkpoint.get('epoch')

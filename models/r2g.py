@@ -124,7 +124,7 @@ class R2G(nn.Module):
             self.nsm = NSM( args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 7, 
+                            num_instructions = 3, 
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
@@ -135,7 +135,7 @@ class R2G(nn.Module):
                             args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 7, 
+                            num_instructions = 3, 
                             description_hidden_size = 256
                             )
 
@@ -175,7 +175,8 @@ class R2G(nn.Module):
         if self.args.use_GT:
             object_class_prob = batch['gt_class'][:, :, :-1].cuda()
         else:
-            object_class_prob = F.softmax(result['class_logits'], dim =-1)
+            object_class_logits = result['class_logits']
+            object_class_prob = F.softmax(object_class_logits, dim =-1)
 
         # Construct node representation 
         batch_size, num_objects, _ = object_class_prob.shape
@@ -233,7 +234,7 @@ class R2G(nn.Module):
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob.cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size']).cuda().float()
+            edge_prob_logits = SR_Retrieval(self.mode, object_class_logits.detach().cpu(), batch['edge_attr'],  batch['edge_distance'], batch['object_mask'], batch['context_size']).cuda().float()
             
             # ## Debug
             # for i in range(batch_size):
