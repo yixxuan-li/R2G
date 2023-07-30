@@ -147,8 +147,6 @@ py::array_t<double> get_relation(
     }
 
 
-    py::print(1, 2.0, "three"); // 1 2.0 three
-    py::print(out_relation == out); // 1 2.0 three
     return out;
 }
 
@@ -192,7 +190,6 @@ py::array_t<double> get_relation_topn(
                 }
             }
         }
-
 
     for (int i_bsz = 0; i_bsz < bsz; i_bsz++)
     {
@@ -243,18 +240,18 @@ py::array_t<double> get_relation_topn(
                         vector<double> _combine = combine_set[com_iter];// the index combinate of one class object
                         double farthest_obj = _combine[0];
                         double closet_obj = _combine[0];
-                        for(int iter = 0; iter <= class_obj_num; iter++)//tranverse the whole set of a class
+                        for(int iter = 0; iter < _class_obj_num; iter++)//tranverse the whole set of a class
                         {   
                             double temp_index = class_obj_index[iter];
                             if(find(_combine.begin(), _combine.end(), temp_index) != _combine.end())
                             {
                                 prob *= object_prob(i_bsz, temp_index);
-                                if (distance(i_bsz, tar_obj/n, temp_index) > distance(i_bsz, tar_obj, farthest_obj))
+                                if (distance(i_bsz, int(tar_obj/n), temp_index) > distance(i_bsz, int(tar_obj/n), farthest_obj))
                                 {
                                     farthest_obj = temp_index;
                                 }
 
-                                if (distance(i_bsz, tar_obj/n, temp_index) < distance(i_bsz, tar_obj, closet_obj))
+                                if (distance(i_bsz, int(tar_obj/n), temp_index) < distance(i_bsz, int(tar_obj/n), closet_obj))
                                 {
                                     closet_obj = temp_index;
                                 }
@@ -282,14 +279,13 @@ py::array_t<double> get_relation_topn(
                         //         closet_obj = temp_obj_index;
                         //     }
                         // }
-                        out_relation(i_bsz, farthest_obj/n, tar_obj/n, 4) += prob;
-                        out_relation(i_bsz, closet_obj/n, tar_obj/n, 5) += prob;
+                        out_relation(i_bsz, int(farthest_obj/n), int(tar_obj/n), 4) += prob;
+                        out_relation(i_bsz, int(closet_obj/n), int(tar_obj/n), 5) += prob;
                     }
                 }
             }
         }
     }
-
 
 
     return out;
