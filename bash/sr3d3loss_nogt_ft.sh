@@ -11,15 +11,16 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --batch-size 64\
         --init-lr 1e-4\
         --experiment-tag ${LOG_NAME}\
-        --obj-cls-alpha 0.2\
+        --obj-cls-alpha 0.0\
         --target-cls-alpha 0.2\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\
         --relation_pred False\
-        --relation_retrieval True\
+        --relation_retrieval False\
         --relation-cls-alpha 0.2\
         --use-GT False\
         --model-attr False\
         --multi-attr False\
         --fine-tune True\
-        --resume-path /data1/liyixuan/R2G/log/online/07-30-2023-11-10-32/checkpoints/best_model.pth
+        --resume-path /data1/liyixuan/R2G/log/obj_cls/07-27-2023-17-08-36/checkpoints/best_model.pth\
+        --scan-relation-path /data1/liyixuan/data/top1_relation_all.pkl

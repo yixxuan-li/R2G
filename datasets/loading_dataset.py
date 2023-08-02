@@ -9,6 +9,7 @@ import torch
 from .utils import check_segmented_object_order, sample_scan_object, pad_samples, objects_bboxes
 from .utils import instance_labels_of_context, mean_rgb_unit_norm_transform, decode_stimulus_string
 from .utils import get_allocentric_relation
+from referit3d.utils import unpickle_data
 from models import token_embeder
 from torch.nn.utils.rnn import pad_sequence
 
@@ -37,7 +38,7 @@ def collate_my(batch_data):
 class ListeningDataset(Dataset):
     def __init__(self, references, scans, vocab, max_seq_len, points_per_object, max_distractors,
                  class_to_idx=None, object_transformation=None,
-                 visualization=False, args = None):
+                 visualization=False, args = None, scan_relation = None):
 
         self.references = references
         self.scans = scans
@@ -49,6 +50,7 @@ class ListeningDataset(Dataset):
         self.class_to_idx = class_to_idx
         self.visualization = visualization
         self.object_transformation = object_transformation
+        self.scan_relation = scan_relation
         # self.embedder = token_embeder(vocab=vocab, word_embedding_dim=args.word_embedding_dim, random_seed=args.random_seed)
         
         self.args= args 
@@ -180,7 +182,7 @@ class ListeningDataset(Dataset):
         
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, self.scan_relation[ref['scan_id']]
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -241,7 +243,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask = self.get_reference_data(index)
+        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask, scan_relation = self.get_reference_data(index)
         # Make a context of distractors
         context, context_ind_of_scan = self.prepare_distractors(scan, target, anchor)
         # print(scan.relation_matrix)
@@ -518,6 +520,12 @@ def make_data_loaders(args, referit_data, vocab, class_to_idx, scans, mean_rgb):
 
     object_transformation = partial(mean_rgb_unit_norm_transform, mean_rgb=mean_rgb,
                                     unit_norm=args.unit_sphere_norm)
+    
+    scan_relation = None
+    if args.scan_relation_path is not None:
+        file = unpickle_data(args.scan_relation_path)
+        scan_relation = next(file)
+
     for split in splits:
         mask = is_train if split == 'train' else ~is_train
         d_set = referit_data[mask]
@@ -551,7 +559,8 @@ def make_data_loaders(args, referit_data, vocab, class_to_idx, scans, mean_rgb):
                                    class_to_idx=class_to_idx,
                                    object_transformation=object_transformation,
                                    visualization=args.mode == 'evaluate',
-                                   args = args)
+                                   args = args,
+                                   scan_relation = scan_relation)
 
         seed = None
         if split == 'test':

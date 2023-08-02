@@ -35,7 +35,8 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--log-dir', type=str, help='where to save training-progress, model, etc')
     parser.add_argument('--resume-path', type=str, help='model-path to resume')
     parser.add_argument('--config-file', type=str, default=None, help='config file')
-
+    parser.add_argument('--scan-relation-path', type=str, default=None, help='scan-relation file')
+    
     #
     # Dataset-oriented arguments
     #

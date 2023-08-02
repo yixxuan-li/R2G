@@ -170,27 +170,26 @@ py::array_t<double> get_relation_topn(
     int num_object = origin_relation.shape()[1];// objects number in a scene
 
     // prepare out relation
-    py::array_t<int> out = py::array_t<int>(origin_relation.size());
+    py::array_t<double> out = py::array_t<int>(origin_relation.size());
     out.resize({origin_relation.shape()[0], origin_relation.shape()[1], origin_relation.shape()[2], origin_relation.shape()[3]});
     auto out_relation = out.mutable_unchecked<4>();
 
     for (int i = 0; i < origin_relation.shape()[0]; i++)
+    {
+        for (int j = 0; j < origin_relation.shape()[1]; j++)
         {
-            for (int j = 0; j < origin_relation.shape()[1]; j++)
+            for (int k = 0; k < origin_relation.shape()[2]; k++)
             {
-                for (int k = 0; k < origin_relation.shape()[2]; k++)
+                for (int l = 0; l < origin_relation.shape()[3]; l++)
                 {
-                    for (int l = 0; l < origin_relation.shape()[3]; l++)
-                    {
-                        int value = relation(i, j, k, l);
+                    int value = relation(i, j, k, l);
 
-                        out_relation(i, j, k, l) = value;
-                    }
-                
+                    out_relation(i, j, k, l) = value;
                 }
+            
             }
         }
-
+    }
     for (int i_bsz = 0; i_bsz < bsz; i_bsz++)
     {
         // get the class set in the scene 
@@ -221,6 +220,11 @@ py::array_t<double> get_relation_topn(
         for (int tar_obj = 0; tar_obj < context(i_bsz) * n; tar_obj++)
         {
             double tar_class = object_class(i_bsz, tar_obj);//get target object class
+            if (isinf(tar_class))
+            {
+                continue;
+            }
+
             // tranverse the class
             for (auto class_key = class_set.begin(); class_key != class_set.end(); ++class_key)
             {
@@ -246,12 +250,12 @@ py::array_t<double> get_relation_topn(
                             if(find(_combine.begin(), _combine.end(), temp_index) != _combine.end())
                             {
                                 prob *= object_prob(i_bsz, temp_index);
-                                if (distance(i_bsz, int(tar_obj/n), temp_index) > distance(i_bsz, int(tar_obj/n), farthest_obj))
+                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) > distance(i_bsz, farthest_obj, int(tar_obj/n)))
                                 {
                                     farthest_obj = temp_index;
                                 }
 
-                                if (distance(i_bsz, int(tar_obj/n), temp_index) < distance(i_bsz, int(tar_obj/n), closet_obj))
+                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) < distance(i_bsz, closet_obj, int(tar_obj/n)))
                                 {
                                     closet_obj = temp_index;
                                 }
@@ -279,14 +283,13 @@ py::array_t<double> get_relation_topn(
                         //         closet_obj = temp_obj_index;
                         //     }
                         // }
-                        out_relation(i_bsz, int(farthest_obj/n), int(tar_obj/n), 4) += prob;
-                        out_relation(i_bsz, int(closet_obj/n), int(tar_obj/n), 5) += prob;
+                        out_relation(i_bsz, int(farthest_obj/n), int(tar_obj/n), 4) += (prob * object_prob(i_bsz, tar_obj));
+                        out_relation(i_bsz, int(closet_obj/n), int(tar_obj/n), 5) += (prob * object_prob(i_bsz, tar_obj));
                     }
                 }
             }
         }
     }
-
 
     return out;
 }

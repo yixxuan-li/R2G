@@ -3,9 +3,11 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from itertools import combinations
+import threading
 import sys 
 sys.path.append("/data1/liyixuan/referit_my/referit3d/models/backbone/example/build")
 import relation
+from einops import rearrange, repeat
  
 # # nr3d
 # nr3dclass = ['table', 'alarm', 'armchair', 'backpack', 'bag', 'ball', 'banner', 'bar', 'basket', 'wall', 'cabinet', 'counter', 'door', 'bathtub', 'chair', 'bear', 'bed', 'bottles', 'bench', 'bicycle', 'bin', 'blackboard', 'blanket', 'blinds', 'board', 'boards', 'book', 'rack', 'books', 'bookshelf', 'bookshelves', 'bottle', 'bowl', 'box', 'boxes', 'bucket', 'doors', 'cabinets', 'calendar', 'camera', 'can', 'car', 'cardboard', 'carpet', 'cart', 'case', 'ceiling', 'fan', 'light', 'chest', 'clock', 'closet', 'floor', 'rod', 'shelf', 'cloth', 'clothes', 'clothing', 'coat', 'column', 'container', 'pot', 'copier', 'couch', 'cushion', 'crate', 'cup', 'cups', 'curtain', 'curtains', 'decoration', 'desk', 'lamp', 'dishwasher', 'dispenser', 'display', 'dolly', 'drawer', 'dresser', 'easel', 'machine', 'sign', 'faucet', 'fireplace', 'stand', 'ladder', 'folder', 'footrest', 'footstool', 'frame', 'furniture', 'futon', 'globe', 'guitar', 'hamper', 'rail', 'towel', 'hanging', 'hat', 'headboard', 'headphones', 'heater', 'jacket', 'keyboard', 'piano', 'laptop', 'ledge', 'legs', 'switch', 'luggage', 'magazine', 'mail', 'tray', 'map', 'mat', 'mattress', 'microwave', 'mirror', 'monitor', 'mouse', 'mug', 'nightstand', 'notepad', 'object', 'ottoman', 'oven', 'painting', 'paper', 'papers', 'person', 'photo', 'picture', 'pictures', 'pillar', 'pillow', 'pillows', 'pipe', 'pipes', 'plant', 'poster', 'printer', 'projector', 'screen', 'purse', 'radiator', 'railing', 'refrigerator', 'roomba', 'rug', 'seat', 'seating', 'shampoo', 'shirt', 'shoe', 'shoes', 'shorts', 'shower', 'walls', 'sink', 'soap', 'stair', 'staircase', 'stairs', 'statue', 'step', 'stool', 'sticker', 'stove', 'suitcase', 'suitcases', 'sweater', 'tank', 'telephone', 'thermostat', 'toaster', 'toilet', 'towels', 'tv', 'umbrella', 'vase', 'vent', 'wardrobe', 'whiteboard', 'window', 'windowsill', 'wood']
@@ -18,8 +20,22 @@ sr_index = [[9, 10, 130, 148, 193, 232, 246, 250, 252, 274, 298, 329, 361, 447, 
 
 
 
+class MyThread(threading.Thread):
+    def __init__(self, func, args=()):
+        super(MyThread, self).__init__()
+        self.func = func
+        self.args = args
+    def run(self):
+        self.result = self.func(*self.args)
+    def get_result(self):
+        threading.Thread.join(self)  # 等待线程执行完毕
+        # try:
+        return self.result
+        # except Exception:
+        #     return None
 
-def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 1, k =3):
+
+def SR_Retrieval(scan_id, mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 2, k =3):
     
     """used to generated the relation that need to be compared with objects in the same class for object
     Args:
@@ -29,16 +45,6 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         object_mask: B x N, mask the padding objects nums in a scene using '-inf'
         context_size: B, scnen context size
     """
-    if mode == 'sr3d':
-        ind = sr_index
-    elif mode == 'nr3d':
-        ind = nr_index
-    num_class = len(ind)
-    bsz, num_obj = full_obj_prob.shape[:2]
-    obj_prob = torch.zeros(num_class).unsqueeze(0).unsqueeze(0).repeat(bsz, num_obj, 1)# B x N x mini Class
-    for i in range(num_class):
-        obj_prob[:, :, i] = torch.sum(full_obj_prob[:, :, ind[i]], dim = -1)
-    obj_prob =  F.softmax(obj_prob, dim = -1) # B x N x mini-Class
     
     
     if n == 0:
@@ -74,17 +80,36 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
     else:
         
         # get top n class for objects
-        topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = False))## B x  N x n_object_class
+        topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = True))## B x  N x n_object_class
         topn_class = F.softmax(topn_class[:, :, :k], dim =-1)# B x N x n, represent top n class probability
         topn_class_prob = topn_class[:, :, :n]# B x N x n, represent top n class probability
         topn_class_indx = topn_class_indx[:, :, :n]# B x N x n, represent top n class index
         mask_obj_class = topn_class_indx + object_mask.unsqueeze(-1).repeat(1, 1, n) # B x N x n; represent the object class 
         
-        batch_obj_class_line = mask_obj_class.view(bsz, num_obj * n) # B x (N x n)
-        batch_obj_prob_line = topn_class_prob.view(bsz, num_obj * n) # B x (N x n)
-        
+        batch_obj_class_line = rearrange(mask_obj_class, 'bsz num_obj n -> bsz (num_obj n)').numpy() # B x (N x n)
+        batch_obj_class_line[batch_obj_class_line == 579] = -np.inf
+        batch_obj_prob_line = rearrange(topn_class_prob.detach(), 'bsz num_obj n -> bsz (num_obj n)').numpy() # B x (N x n)
+        count_dist = dict()
+        for i in topn_class_indx[0].numpy():
+            if i[0] in count_dist:
+                count_dist[i[0]] += 1
+            else:
+                count_dist[i[0]] = 1
+        # print(sorted(count_dist.items(), key=lambda x: x[1], reverse=True))
+        # Flag = True
+        # for k, v in count_dist.items():
+        #     if(v > 25):
+
+        #         # print("******", scan_id, k ,v)
+        #         mask_obj_class = (torch.argmax(full_obj_prob, dim = -1) + object_mask)
+        #         origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
+        #         Flag = False
+        #     # 
+        # if Flag:
+        #     origin_relation = (relation.get_relation_topn(batch_obj_class_line, batch_obj_prob_line, origin_relation, obj_distance.squeeze(-1), context_size, n))
+        origin_relation = torch.tensor(origin_relation)
         # -------------------------- c++ ------------------------------
-        origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line.numpy(), batch_obj_prob_line.numpy(), origin_relation, obj_distance.squeeze(-1), context_size, n))
+        # origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line, batch_obj_prob_line, origin_relation, obj_distance.squeeze(-1), context_size, n))
         # -------------------------------------------------------------
         
         # ------------------------ pytorch -----------------------------
@@ -121,6 +146,167 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         # -------------------------------------------------------------
         
     return origin_relation
+
+
+
+# def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 1, k =3):
+    
+#     """used to generated the relation that need to be compared with objects in the same class for object
+#     Args:
+#         obj_prob (_type_): B x N x num_class, N is the number of objects in the scene, the probability of the object belong to a class
+#         origin_relation (_type_): B x N x N x num_relations, the realtion between objects calculated without comparence considered 
+#         obj_distance (_type_): B x N x N x 1, the object center, 
+#         object_mask: B x N, mask the padding objects nums in a scene using '-inf'
+#         context_size: B, scnen context size
+#     """
+#     if mode == 'sr3d':
+#         ind = sr_index
+#     elif mode == 'nr3d':
+#         ind = nr_index
+#     num_class = len(ind)
+#     bsz, num_obj = full_obj_prob.shape[:2]
+#     obj_prob = torch.zeros(num_class).unsqueeze(0).unsqueeze(0).repeat(bsz, num_obj, 1)# B x N x mini Class
+#     for i in range(num_class):
+#         obj_prob[:, :, i] = torch.sum(full_obj_prob[:, :, ind[i]], dim = -1)
+#     obj_prob =  F.softmax(obj_prob, dim = -1) # B x N x mini-Class
+    
+    
+#     if n == 0:
+#         # get top 1 class for object
+#         mask_obj_class = (torch.argmax(full_obj_prob, dim = -1) + object_mask) # B x N; represent the object class 
+#         # mask_obj_class = torch.where(torch.isinf(mask_obj_class), torch.full_like(mask_obj_class, -1), mask_obj_class)
+#         # ------------------------ pytorch -----------------------------
+#         # for i in range(bsz):
+#         #     batch_obj_prob = mask_obj_class[i]# N
+#         #     batch_obj_class_set = set(batch_obj_prob.numpy())
+#         #     batch_obj_class_set.discard(-np.inf)
+#         #     for tar_ind in range(context_size[i]):
+#         #         tar_class = batch_obj_prob[tar_ind]
+#         #         _batch_obj_class_set = batch_obj_class_set
+#         #         _batch_obj_class_set.discard(tar_class.numpy().tolist())
+#         #         for ref_class in _batch_obj_class_set:
+#         #             ref_obj_ind = torch.nonzero(torch.eq(batch_obj_prob, ref_class)).squeeze(-1)
+#         #             ref_obj_distance = obj_distance[i, ref_obj_ind, tar_ind]
+#         #             closet = ref_obj_ind[torch.argmin(ref_obj_distance)]
+#         #             farthest = ref_obj_ind[torch.argmax(ref_obj_distance)]
+#         #             if closet == farthest:
+#         #                 continue
+#         #             origin_relation[i, closet, tar_ind, -5] = 1
+#         #             origin_relation[i, farthest, tar_ind, -6] = 1
+#         # -------------------------------------------------------------
+        
+#         # -------------------------- c++ ------------------------------
+
+#         origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
+#         # -------------------------------------------------------------
+                    
+
+#     else:
+
+#         threads = []
+#         thread_cnt = bsz
+
+        
+#         # get top n class for objects
+#         topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = True))## B x  N x n_object_class
+#         topn_class = F.softmax(topn_class[:, :, :k], dim =-1)# B x N x n, represent top n class probability
+#         topn_class_prob = topn_class[:, :, :n]# B x N x n, represent top n class probability
+#         topn_class_indx = topn_class_indx[:, :, :n]# B x N x n, represent top n class index
+#         mask_obj_class = topn_class_indx + object_mask.unsqueeze(-1).repeat(1, 1, n) # B x N x n; represent the object class 
+
+
+#         batch_obj_class_line = rearrange(mask_obj_class, 'bsz num_obj n -> bsz (num_obj n)').numpy() # B x (N x n)
+#         batch_obj_class_line[batch_obj_class_line == 579] = -np.inf
+#         batch_obj_prob_line = rearrange(topn_class_prob, 'bsz num_obj n -> bsz (num_obj n)').numpy() # B x (N x n)
+
+#         # for i in range(bsz):
+#         #     label_num = {}
+#         #     for label in batch_obj_class_line[i]:
+#         #         if label in label_num.keys():
+#         #             label_num[label] += 1
+#         #         else:
+#         #             label_num[label] = 1
+#         #     # a = sorted(label_num.items(), key=lambda x: x[1], reverse=True)
+#         #     for k ,v in label_num.items():
+#         #         if v > 30 and k != -np.inf:
+#         #             print(idx_2_class[k], v)
+            
+#         # origin_relation = torch.tensor(origin_relation)
+
+#         for i in range(thread_cnt):
+#         #     label_num = {}
+#         #     Flag = True
+#         #     for label in batch_obj_class_line[i]:
+#         #         if label in label_num.keys():
+#         #             label_num[label] += 1
+#         #         else:
+#         #             label_num[label] = 1
+
+#         #         if label_num[label] > 30 and label != -np.inf:
+#         #             mask_obj_class = (torch.argmax(full_obj_prob, dim = -1) + object_mask)
+#         #             t = MyThread(relation.get_relation, (np.expand_dims(mask_obj_class.squeeze(-1).numpy(), axis = 0), [origin_relation[i]], [obj_distance[i].squeeze(-1)], [context_size[i]]))
+#         #             Flag = False
+#         #             break
+#         #     if Flag:
+#             t = MyThread(relation.get_relation_topn, (np.expand_dims(batch_obj_class_line[i], axis = 0), np.expand_dims(batch_obj_prob_line[i], axis = 0), [origin_relation[i]], [obj_distance[i].squeeze(-1)], [context_size[i]], n))
+#             threads.append(t)
+#             t.start()
+        
+#         for t in threads:
+#             t.join()
+
+#         origin_relation = []
+#         for t in threads:
+#             origin_relation.append(torch.tensor(t.get_result()))
+
+
+#         origin_relation = torch.cat(origin_relation, dim = 0)
+
+#         # # -------------------------- c++ ------------------------------
+#         # origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line, batch_obj_prob_line, origin_relation, obj_distance.squeeze(-1), context_size, n))
+#         # -------------------------------------------------------------
+        
+#         # # ------------------------ pytorch -----------------------------
+#         # for i in range(bsz):
+#         #     label_num = {}
+#         #     batch_obj_class = mask_obj_class[i]# N x n
+#         #     topn_class_prob_batch = topn_class_prob[i]
+#         #     batch_obj_class_line = batch_obj_class.reshape(num_obj * n)# (N x n)
+#         #     batch_obj_prob_line = topn_class_prob_batch.reshape(num_obj * n)# (N x n)
+#         #     for label in batch_obj_class_line:
+#         #         if label in label_num.keys():
+#         #             label_num[label] += 1
+#         #         else:
+#         #             label_num[label] = 1
+#         #     batch_obj_class_set = set(batch_obj_class_line)
+#         #     batch_obj_class_set.discard(-np.inf)
+            
+#         #     for tar_ind in range(context_size[i]):## select target object 
+#         #         for j in range(n):## select target class
+#         #             tar_class = batch_obj_class[tar_ind, j] # n
+#         #             _batch_obj_class_set = batch_obj_class_set
+#         #             _batch_obj_class_set.discard(tar_class.numpy().tolist())
+#         #             for ref_class in _batch_obj_class_set:
+#         #                 ref_obj_line_ind = torch.nonzero(torch.eq(batch_obj_class_line, ref_class)).squeeze(-1)# index of the objects belonging to class ref_class in batch_obj_prob_line 
+#         #                 for num_com in range(1, len(ref_obj_line_ind)):
+
+#         #                     for com in combinations(ref_obj_line_ind, num_com):
+#         #                         obj_ind_complement = torch.tensor(list(set(ref_obj_line_ind) - set(com))).long()
+#         #                         ref_obj_ind = torch.tensor(com) / n
+#         #                         # ref_obj_ind_relative = torch.tensor(com) % n
+#         #                         ref_obj_distance = obj_distance[i, ref_obj_ind.long(), tar_ind]
+#         #                         closet = ref_obj_ind[torch.argmin(ref_obj_distance)]
+#         #                         farthest = ref_obj_ind[torch.argmax(ref_obj_distance)]
+                                
+#         #                         p_include = batch_obj_prob_line[torch.tensor(com).long()]# com
+#         #                         p_notinclude = 1 - batch_obj_prob_line[obj_ind_complement]# (context - epoch)                                
+                                
+#         #                         origin_relation[i, closet.long(), tar_ind, -5] += p_include.prod(dim = -1) * p_notinclude.prod(dim = -1)
+#         #                         origin_relation[i, farthest.long(), tar_ind, -6] += p_include.prod(dim = -1) * p_notinclude.prod(dim = -1)
+#             # print(sorted(label_num.items(), key=lambda x: x[1], reverse=True))
+#         # -------------------------------------------------------------
+        
+#     return origin_relation
                     
                      
     
