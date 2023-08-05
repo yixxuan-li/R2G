@@ -314,8 +314,8 @@ class ListeningDataset(Dataset):
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
-
-        relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
+        context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
+        relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
         relation_matrix = relation_matrix[:, context_ind_of_scan, :]
 
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']

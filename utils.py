@@ -221,10 +221,10 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     batch_keys = make_batch_keys(args)
 
     ## debug 
-    # all = 0
-    # count = 0 
-    # rela_dis = np.zeros(10)
-    # rela_all = np.zeros(10)
+    all = np.zeros(9)
+    count = np.zeros(9)
+    rela_dis = np.zeros((9, 10))
+    rela_all = np.zeros((9, 10))
 
     for batch in tqdm.tqdm(data_loader):
         # Move data to gpu
@@ -238,10 +238,10 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
         res = model(batch)
 
         ## debug
-        # rela_dis = rela_dis + res['rela_dis']
-        # all = all + batch['target_pos'].size(0)
-        # count = count + res['edge_correct']
-        # rela_all = rela_all + res['rela_sum']
+        rela_dis = rela_dis + res['rela_dis']
+        all = all + batch['target_pos'].size(0)
+        count = count + res['edge_correct']
+        rela_all = rela_all + res['rela_sum']
 
         # Backward
         optimizer.zero_grad()
@@ -292,8 +292,7 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             relation_acc_mtr.update(cls_b_acc, batch_size)
             relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
     ## debug
-    # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
-
+    print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
     metrics['train_total_loss'] = total_loss_mtr.avg
     metrics['train_referential_loss'] = referential_loss_mtr.avg
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg

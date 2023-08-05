@@ -8,7 +8,7 @@ python train.py\
         -referit3D-file /data1/liyixuan/data/sr3d/sr3d.csv\
         --log-dir /home/user/liyixuan/R2G/log\
         --n-workers 8\
-        --batch-size 32\
+        --batch-size 64\
         --init-lr 1e-4\
         --experiment-tag ${LOG_NAME}\
         --obj-cls-alpha 0.2\
@@ -16,8 +16,9 @@ python train.py\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\
         --relation_pred False\
-        --relation_retrieval True\
+        --relation_retrieval False\
         --relation-cls-alpha 0.2\
         --use-GT False\
         --model-attr False\
-        --multi-attr False
+        --multi-attr False\
+        --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl

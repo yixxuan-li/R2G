@@ -228,34 +228,41 @@ py::array_t<double> get_relation_topn(
             // tranverse the class
             for (auto class_key = class_set.begin(); class_key != class_set.end(); ++class_key)
             {
+                vector<double> class_obj_index = class_key->second;//get object set belonging to target class
+                int class_obj_num = class_obj_index.size();// numebr of object having the same label
+
                 if (class_key->first == tar_class)
                 {
                     continue;
                 }
-                vector<double> class_obj_index = class_key->second;//get object set belonging to target class
-                int class_obj_num = class_obj_index.size();// numebr of object having the same label
+                if(class_obj_num == 1)
+                {
+                    continue;
+                }
+
                 for(int _class_obj_num = 1; _class_obj_num <= class_obj_num; _class_obj_num++)
                 {
                     // get index combinations of one class set in same size; 
                     auto combine_set = combine(class_obj_index, _class_obj_num);
-                    double prob = 1;
                     for(int com_iter = 0; com_iter < combine_set.size(); com_iter++)
                     {
                         vector<double> _combine = combine_set[com_iter];// the index combinate of one class object
                         double farthest_obj = _combine[0];
                         double closet_obj = _combine[0];
-                        for(int iter = 0; iter < _class_obj_num; iter++)//tranverse the whole set of a class
+                        double prob = 1;
+                        //
+                        for(int iter = 0; iter < class_obj_num; iter++)//tranverse the whole set of a class
                         {   
                             double temp_index = class_obj_index[iter];
                             if(find(_combine.begin(), _combine.end(), temp_index) != _combine.end())
                             {
                                 prob *= object_prob(i_bsz, temp_index);
-                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) > distance(i_bsz, farthest_obj, int(tar_obj/n)))
+                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) > distance(i_bsz, int(farthest_obj/n), int(tar_obj/n)))
                                 {
                                     farthest_obj = temp_index;
                                 }
 
-                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) < distance(i_bsz, closet_obj, int(tar_obj/n)))
+                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) < distance(i_bsz, int(closet_obj/n), int(tar_obj/n)))
                                 {
                                     closet_obj = temp_index;
                                 }
@@ -263,7 +270,7 @@ py::array_t<double> get_relation_topn(
                             }
                             else
                             {
-                                prob *= (1 - object_prob(i_bsz, temp_index));
+                                prob *= (1 - object_prob(i_bsz,temp_index));
                             }
                         }
                         // vector<double> _combine = combine_set[com_iter];
