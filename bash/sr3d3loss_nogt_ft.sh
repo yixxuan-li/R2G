@@ -1,4 +1,5 @@
 #!/bin/bash
+# --resume-path /data1/liyixuan/R2G/log/obj_cls/07-27-2023-17-08-36/checkpoints/best_model.pth\
 CUDA_ID=$1
 LOG_NAME=$2
 
@@ -11,7 +12,7 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --batch-size 64\
         --init-lr 1e-4\
         --experiment-tag ${LOG_NAME}\
-        --obj-cls-alpha 0.0\
+        --obj-cls-alpha 0.001\
         --target-cls-alpha 0.2\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\
@@ -22,5 +23,6 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --model-attr False\
         --multi-attr False\
         --fine-tune True\
-        --resume-path /data1/liyixuan/R2G/log/obj_cls/07-27-2023-17-08-36/checkpoints/best_model.pth\
-        --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl
+        --resume-path /data1/liyixuan/R2G/log/offline_top2/08-05-2023-00-54-13/checkpoints/best_model.pth\
+        --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl\
+        --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth

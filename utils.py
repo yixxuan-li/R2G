@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import torch
 import tqdm
+from collections import OrderedDict
+
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
 
@@ -221,10 +223,10 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
     batch_keys = make_batch_keys(args)
 
     ## debug 
-    all = np.zeros(9)
-    count = np.zeros(9)
-    rela_dis = np.zeros((9, 10))
-    rela_all = np.zeros((9, 10))
+    # all = np.zeros(9)
+    # count = np.zeros(9)
+    # rela_dis = np.zeros((9, 10))
+    # rela_all = np.zeros((9, 10))
 
     for batch in tqdm.tqdm(data_loader):
         # Move data to gpu
@@ -238,10 +240,10 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
         res = model(batch)
 
         ## debug
-        rela_dis = rela_dis + res['rela_dis']
-        all = all + batch['target_pos'].size(0)
-        count = count + res['edge_correct']
-        rela_all = rela_all + res['rela_sum']
+        # rela_dis = rela_dis + res['rela_dis']
+        # all = all + batch['target_pos'].size(0)
+        # count = count + res['edge_correct']
+        # rela_all = rela_all + res['rela_sum']
 
         # Backward
         optimizer.zero_grad()
@@ -292,7 +294,7 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
             relation_acc_mtr.update(cls_b_acc, batch_size)
             relation_loss_mtr.update(all_losses['relation_clf_loss'].item(), batch_size)            
     ## debug
-    print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
+    # print('edge_correct:', count/all, "rela_acc:", 1 - rela_dis/rela_all, "rela_sum:", rela_all)
     metrics['train_total_loss'] = total_loss_mtr.avg
     metrics['train_referential_loss'] = referential_loss_mtr.avg
     metrics['train_obj_clf_loss'] = obj_loss_mtr.avg
@@ -387,7 +389,6 @@ def evaluate_on_dataset(model, data_loader, criteria, device, pad_idx, args, ran
     # count = 0 
     # rela_dis = np.zeros(10)
     # rela_all = np.zeros(10)
-
     for batch in tqdm.tqdm(data_loader):
         # Move data to gpu
         for k in batch_keys:
@@ -672,22 +673,62 @@ def save_state_dicts(checkpoint_file, epoch=None, **kwargs):
     torch.save(checkpoint, checkpoint_file)
 
 
-def load_state_dicts(checkpoint_file, map_location=None, **kwargs):
+def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs):
     """Load torch items from saved state_dictionaries.
     """
-    if map_location is None:
-        checkpoint = torch.load(checkpoint_file)
-    else:
-        checkpoint = torch.load(checkpoint_file, map_location=map_location)
+
+    # if map_location is None:
+    #     checkpoint = torch.load(checkpoint_file)
+    # else:
+    #     checkpoint = torch.load(checkpoint_file, map_location=map_location)
+
+    # for key, value in kwargs.items():
+    #     if key == 'model':
+    #         value.load_state_dict(checkpoint[key], strict=False)
+    #     # # else:
+    #     # value.load_state_dict(checkpoint[key])
+
+    # epoch = checkpoint.get('epoch')
+    # if epoch:
+    #     return epoch
+
+    epoch = None
+    if checkpoint_file is not None:
+        if map_location is None:
+            checkpoint = torch.load(checkpoint_file)
+        else:
+            checkpoint = torch.load(checkpoint_file, map_location=map_location)
+        epoch = checkpoint.get('epoch')
+
+    if obj_cls_path is not None:
+        if map_location is None:
+            obj_pre = torch.load(obj_cls_path)
+        else:
+            obj_pre = torch.load(obj_cls_path, map_location=map_location)
+    
+    nsm = OrderedDict()
+
+    if checkpoint_file is not None:
+        nsm = checkpoint['model']
+        
+    if obj_cls_path is not None: 
+        # object_class_pth =  dict()
+        for k, v in obj_pre['model'].items():
+            if "scene_graph.single_object_encoder" in k:
+                _k = k.replace("scene_graph.single_object_encoder", "object_encoder")
+                nsm[_k] = v
+            if "scene_graph.object_mlp" in k:
+                _k = k.replace("scene_graph.object_mlp", "object_clf")
+                nsm[_k] = v
+
 
     for key, value in kwargs.items():
         if key == 'model':
-            value.load_state_dict(checkpoint[key], strict=False)
-        # # else:
-        # value.load_state_dict(checkpoint[key])
+            value.load_state_dict(nsm, strict=False)
+        else:
+            value.load_state_dict(checkpoint[key])
 
-    epoch = checkpoint.get('epoch')
-    if epoch:
+    if epoch is not None:
         return epoch
 
 

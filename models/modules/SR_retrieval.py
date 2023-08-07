@@ -35,7 +35,7 @@ class MyThread(threading.Thread):
         #     return None
 
 
-def SR_Retrieval(scan_id, mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 2, k =3):
+def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_distance = None, object_mask = None, context_size = None, n = 0, k =3):
     
     """used to generated the relation that need to be compared with objects in the same class for object
     Args:

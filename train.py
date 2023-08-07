@@ -188,14 +188,14 @@ if __name__ == '__main__':
     best_test_epoch = -1
     no_improvement = 0
 
-    if args.resume_path:
+    if args.resume_path or args.obj_cls_path:
         warnings.warn('Resuming assumes that the BEST per-val model is loaded!')
         # perhaps best_test_acc, best_test_epoch, best_test_epoch =  unpickle...
-        loaded_epoch = load_state_dicts(args.resume_path, map_location=device, model=model)
+        loaded_epoch = load_state_dicts(args.resume_path, args.obj_cls_path, map_location=device, model=model)
         print('Loaded a model stopped at epoch: {}.'.format(loaded_epoch))
         if not args.fine_tune:
             print('Loaded a model that we do NOT plan to fine-tune.')
-            load_state_dicts(args.resume_path, optimizer=optimizer, lr_scheduler=lr_scheduler)
+            load_state_dicts(args.resume_path, args.obj_cls_path, optimizer=optimizer, lr_scheduler=lr_scheduler)
             start_training_epoch = loaded_epoch + 1
             best_test_epoch = loaded_epoch
             best_test_acc = lr_scheduler.best

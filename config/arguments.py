@@ -36,6 +36,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--resume-path', type=str, help='model-path to resume')
     parser.add_argument('--config-file', type=str, default=None, help='config file')
     parser.add_argument('--scan-relation-path', type=str, default=None, help='scan-relation file')
+    parser.add_argument('--obj-cls-path', type=str, default=None, help='obj-cls file')
     
     #
     # Dataset-oriented arguments
