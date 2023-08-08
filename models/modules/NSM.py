@@ -97,6 +97,7 @@ class NSMCell(nn.Module):
         self,
         input_size: int,
         n_node_properties: int,
+        n_ins: int,
         dropout: float = 0.0
     ) -> None:
         super(NSMCell, self).__init__()
@@ -109,6 +110,8 @@ class NSMCell(nn.Module):
         self.weight_state_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
         self.weight_relation_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
         self.dropout = nn.Dropout(p=dropout)
+
+        self.n_ins = n_ins
 
 
     def forward(
@@ -142,7 +145,7 @@ class NSMCell(nn.Module):
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
         # B x N x H
-        if ins_id  == 0 or ins_id == 2:
+        if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
             node_scores = self.dropout(
                 self.nonlinearity(
                     torch.sum(
@@ -164,7 +167,7 @@ class NSMCell(nn.Module):
             )
 
 
-        if ins_id %2 != 0:
+        if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
             edge_scores = self.dropout(
                 self.nonlinearity(
                                 rearrange(
@@ -187,14 +190,14 @@ class NSMCell(nn.Module):
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         # if ins_id % 2 == 0:
         #     next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2), dim =1)
-        if ins_id == 0:
+        if (self.n_ins == 3 and ins_id == 0) or (self.n_ins == 21 and ins_id != 10):
             next_distribution_states = F.softmax(
                 rearrange(
                     torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
                 ) + node_mask,
                 dim = 1
             )
-        if ins_id == 2:
+        if (self.n_ins == 3 and ins_id == 2):
             next_distribution_states = rearrange(
                     torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
                 )
@@ -210,7 +213,7 @@ class NSMCell(nn.Module):
         #     dim = 1 
         # )
         
-        if ins_id %2 != 0:
+        if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
             next_distribution_relations = F.softmax(
                 (torch.sum(
                         edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
@@ -231,14 +234,14 @@ class NSMCell(nn.Module):
         # next_distribution = (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
         #     + (1 - relation_prop_similarity).view(batch_size, 1)
         #     * next_distribution_states)  #(B x N)   
-        if ins_id %2 == 0:
-            next_distribution = next_distribution_states  #(B x N)
-            # next_distribution = next_distribution * distribution
-        elif ins_id %2 != 0:
-            next_distribution = next_distribution_relations#(B X N)
+        
+        # if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
+        #     next_distribution = next_distribution_states  #(B x N)
+        # elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+        #     next_distribution = next_distribution_relations#(B X N)
             
-        if ins_id == 2:
-            next_distribution = next_distribution * distribution
+        # if (self.n_ins == 3 and ins_id == 2):
+        #     next_distribution = next_distribution * distribution
                                           
         return next_distribution
 
@@ -271,7 +274,7 @@ class NSM(nn.Module):
             self.target_clf = target_clf    
 
         self.num_instructions = num_instructions
-        self.nsm_cell = NSMCell(input_size, num_node_properties, dropout=dropout)  
+        self.nsm_cell = NSMCell(input_size, num_node_properties, n_ins = num_instructions, dropout=dropout)  
         self.dropout = nn.Dropout(dropout)  
         
     def forward(
@@ -365,10 +368,16 @@ class NSM(nn.Module):
                 instruction_prop = F.softmax(instruction @ property_embeddings.T, dim=1)  # B x D(L+2)
             else:
                 instruction_prop = torch.zeros([batch_size, num_property]).cuda()
-                if ins_id == 1 or ins_id == 3:
-                    instruction_prop[:, -1] = 1
-                else:
-                    instruction_prop[:, :-1] = 1
+                if self.num_instructions == 3:
+                    if ins_id == 1:
+                        instruction_prop[:, -1] = 1
+                    else:
+                        instruction_prop[:, :-1] = 1
+                elif self.num_instructions == 21:
+                    if ins_id == 10:
+                        instruction_prop[:, -1] = 1
+                    else:
+                        instruction_prop[:, ins_id % 11] = 1
             if instructions_mask is not None:
                 instruction_prop = torch.mul(instruction_prop,  repeat(instructions_mask[:, ins_id], 'b -> b n', n = num_property))
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)

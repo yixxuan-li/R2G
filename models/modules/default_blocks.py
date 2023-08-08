@@ -55,7 +55,7 @@ def token_encoder(vocab: Vocabulary,
                   word_dropout: float,
                   init_c=None, init_h=None, random_seed=None,
                   feature_type='max',
-                  glove_emb_file: str = '/data1/liyixuan/glove/glove.6B.300d.txt') -> LSTMEncoder:#/data1/liyixuan/glove/glove.6B.300d.txt
+                  glove_emb_file: str = '/home/yixuan/glove.6B.300d.txt') -> LSTMEncoder:#/data1/liyixuan/glove/glove.6B.300d.txt
     """
     Language Token Encoder.
 
@@ -101,7 +101,7 @@ def token_encoder(vocab: Vocabulary,
 def token_embeder(vocab: Vocabulary,
                   word_embedding_dim: int,
                   random_seed=None,
-                  glove_emb_file: str = '/data1/liyixuan/glove/glove.6B.300d.txt') -> LSTMEncoder:
+                  glove_emb_file: str = '/home/yixuan/glove.6B.300d.txt') -> LSTMEncoder:
     """
     Language Token Encoder.
 

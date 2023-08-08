@@ -4,9 +4,9 @@ LOG_NAME=$1
 
 CUDA_VISIBLE_DEVICES=2
 python train.py\
-        -scannet-file /data1/liyixuan/data/sr3d_scannet/keep_all_points_with_global_scan_alignment_relation_ready.pkl\
-        -referit3D-file /data1/liyixuan/data/sr3d/sr3d.csv\
-        --log-dir /home/user/liyixuan/R2G/log\
+        -scannet-file /home/yixuan/data/keep_all_points_with_global_scan_alignment_relation_ready.pkl\
+        -referit3D-file /home/yixuan/data/sr3d.csv\
+        --log-dir /home/yixuan/R2G/log\
         --n-workers 8\
         --batch-size 64\
         --init-lr 1e-4\
@@ -21,4 +21,6 @@ python train.py\
         --use-GT False\
         --model-attr False\
         --multi-attr False\
-        --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl
+        --scan-relation-path /home/yixuan/data/top2_relation_all.pkl\
+        --mode evaluate\
+        --resume-path /home/yixuan/R2G/log/top2/08-08-2023-08-12-56/checkpoints/best_model.pth

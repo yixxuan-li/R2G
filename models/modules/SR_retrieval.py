@@ -5,8 +5,8 @@ import numpy as np
 from itertools import combinations
 import threading
 import sys 
-sys.path.append("/data1/liyixuan/referit_my/referit3d/models/backbone/example/build")
-import relation
+# sys.path.append("/data1/liyixuan/referit_my/referit3d/models/backbone/example/build")
+# import relation
 from einops import rearrange, repeat
  
 # # nr3d
