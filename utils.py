@@ -24,6 +24,7 @@ from collections import OrderedDict
 
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
+import torch.nn as nn
 
 
 from torch.optim.lr_scheduler import _LRScheduler
@@ -219,6 +220,9 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
     # Set the model in training mode
     model.train()
+    model.object_encoder.eval()
+    model.object_clf.eval()
+
     np.random.seed()  # call this to change the sampling of the point-clouds
     batch_keys = make_batch_keys(args)
 
