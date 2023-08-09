@@ -220,8 +220,8 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
     # Set the model in training mode
     model.train()
-    model.object_encoder.eval()
-    model.object_clf.eval()
+    # model.object_encoder.eval()
+    # model.object_clf.eval()
 
     np.random.seed()  # call this to change the sampling of the point-clouds
     batch_keys = make_batch_keys(args)

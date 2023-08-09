@@ -1,15 +1,15 @@
 #!/bin/bash
-CUDA_ID=$0
-LOG_NAME=$1
+CUDA_ID=$1
+LOG_NAME=$2
 
-CUDA_VISIBLE_DEVICES=2
-python train.py\
+
+CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         -scannet-file /home/yixuan/data/keep_all_points_with_global_scan_alignment_relation_ready.pkl\
         -referit3D-file /home/yixuan/data/sr3d.csv\
         --log-dir /home/yixuan/R2G/log\
         --n-workers 8\
         --batch-size 64\
-        --init-lr 1e-4\
+        --init-lr 1e-6\
         --experiment-tag ${LOG_NAME}\
         --obj-cls-alpha 0.2\
         --target-cls-alpha 0.2\
@@ -22,5 +22,6 @@ python train.py\
         --model-attr False\
         --multi-attr False\
         --scan-relation-path /home/yixuan/data/top2_relation_all.pkl\
+        --resume-path /home/yixuan/R2G/log/ft/08-09-2023-21-18-23/checkpoints/best_model.pth\
+        --obj-cls-path /home/yixuan/data/pretrained_cls.pth\
         --mode evaluate\
-        --resume-path /home/yixuan/R2G/log/top2/08-08-2023-08-12-56/checkpoints/best_model.pth

@@ -145,45 +145,45 @@ class NSMCell(nn.Module):
         # Compute node and edge score based on the instructions's property relation;
         #  which stand for the node and edge's relative of instruction
         # B x N x H
-        if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
-            node_scores = self.dropout(
-                self.nonlinearity(
-                    torch.sum(
-                            F.normalize(
-                                torch.mul(
-                                    repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
+        # if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
+        node_scores = self.dropout(
+            self.nonlinearity(
+                torch.sum(
+                        F.normalize(
+                            torch.mul(
+                                repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
+                                torch.matmul(
+                                    torch.mul(
+                                        repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
+                                        rearrange(node_attr, 'b n p h -> b p n h')
+                                        ),
+                                    repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
+                                )
+                            )
+                        ),
+                    dim=1,
+                )# B x P x N x H -> B x N x H 
+            )
+        )
+
+
+        # if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+        edge_scores = self.dropout(
+            self.nonlinearity(
+                            rearrange(
+                                F.normalize(
                                     torch.matmul(
                                         torch.mul(
-                                            repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
-                                            rearrange(node_attr, 'b n p h -> b p n h')
-                                            ),
-                                        repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
+                                            repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
+                                            rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
+                                        ),
+                                        repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
                                     )
-                                )
-                            ),
-                        dim=1,
-                    )# B x P x N x H -> B x N x H 
-                )
-            )
-
-
-        if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
-            edge_scores = self.dropout(
-                self.nonlinearity(
-                                rearrange(
-                                    F.normalize(
-                                        torch.matmul(
-                                            torch.mul(
-                                                repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
-                                                rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
-                                            ),
-                                            repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
-                                        )
-                                    ), 
-                                    'b (n1 n2) h -> b n1 n2 h', n1 = num_node
-                                )
-                )# B x N x N x H
-            )
+                                ), 
+                                'b (n1 n2) h -> b n1 n2 h', n1 = num_node
+                            )
+            )# B x N x N x H
+        )
 
             
         # shift the attention to their most relavant neibors; B x N x H -> B x N
@@ -234,14 +234,14 @@ class NSMCell(nn.Module):
         # next_distribution = (   relation_prop_similarity.view(batch_size, 1) * next_distribution_relations# (B) x (B X N)
         #     + (1 - relation_prop_similarity).view(batch_size, 1)
         #     * next_distribution_states)  #(B x N)   
-        
-        # if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
-        #     next_distribution = next_distribution_states  #(B x N)
-        # elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
-        #     next_distribution = next_distribution_relations#(B X N)
+
+        if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
+            next_distribution = next_distribution_states  #(B x N)
+        elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+            next_distribution = next_distribution_relations#(B X N)
             
-        # if (self.n_ins == 3 and ins_id == 2):
-        #     next_distribution = next_distribution * distribution
+        if (self.n_ins == 3 and ins_id == 2):
+            next_distribution = next_distribution * distribution
                                           
         return next_distribution
 
