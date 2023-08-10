@@ -190,7 +190,7 @@ class NSMCell(nn.Module):
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         # if ins_id % 2 == 0:
         #     next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2), dim =1)
-        if (self.n_ins == 3 and ins_id == 0) or (self.n_ins == 21 and ins_id != 10):
+        if (self.n_ins == 3 and ins_id == 0) or (self.n_ins == 19 and ins_id != 9):
             next_distribution_states = F.softmax(
                 rearrange(
                     torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
@@ -213,7 +213,7 @@ class NSMCell(nn.Module):
         #     dim = 1 
         # )
         
-        if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+        if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 19 and ins_id == 9):
             next_distribution_relations = F.softmax(
                 (torch.sum(
                         edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
@@ -235,9 +235,9 @@ class NSMCell(nn.Module):
         #     + (1 - relation_prop_similarity).view(batch_size, 1)
         #     * next_distribution_states)  #(B x N)   
 
-        if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
+        if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 19 and ins_id != 9):
             next_distribution = next_distribution_states  #(B x N)
-        elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+        elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 19 and ins_id == 9):
             next_distribution = next_distribution_relations#(B X N)
             
         if (self.n_ins == 3 and ins_id == 2):

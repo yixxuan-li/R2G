@@ -124,7 +124,7 @@ class R2G(nn.Module):
             self.nsm = NSM( args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 19, 
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
@@ -135,7 +135,7 @@ class R2G(nn.Module):
                             args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
+                            num_instructions = 19, 
                             description_hidden_size = 256
                             )
 
@@ -174,8 +174,9 @@ class R2G(nn.Module):
         # Using GT or not
         if self.args.use_GT:
             object_class_prob = batch['gt_class'][:, :, :-1].cuda()
+            object_class_logits = batch['gt_class'][:, :, :-1].cuda()
         else:
-            object_class_logits = result['class_logits'].detach()
+            object_class_logits = result['class_logits']
             object_class_prob = F.softmax(object_class_logits, dim =-1)
 
         # Construct node representation 
@@ -380,7 +381,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     
     
     # make an object (segment) encoder for point-clouds with color
-    if args.obj_cls_alpha + args.relation_pred  > 0 or not args.use_GT:
+    if args.obj_cls_alpha + args.relation_pred  > 0 or not args.use_GT or args.model_attr:
         if args.object_encoder == 'pnet_pp':
             object_encoder = single_object_encoder(geo_out_dim)
         elif args.object_encoder == 'pointnext':

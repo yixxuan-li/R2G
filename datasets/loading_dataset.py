@@ -102,81 +102,101 @@ class ListeningDataset(Dataset):
         #     instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
         #     instruction_tokens = np.array(instruction_tokens)
 
+        keys = ['anchor', 'relation', 'target']
+        sub_keys = ['identity', 'color', 'size', 'height', 'position', 'vertical position', 'horizontal position', 'length', 'curve']
         if 'instruction' in ref.keys():
             instructions = []
             instructions_mask = []
-            if "}}}}" in ref['instruction']:
-                if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0][-1] != "}":
-                    ins = eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0]+"}}}}")
-            elif "}}}" in ref['instruction']:
-                if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0][-1] != "}":
-                    ins =eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}')[0]+"}}}")
-            else:
-                ins =eval(str(ref['instruction']).split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0])
-            if not isinstance(ins, dict):
-                ins = ins[0]
-            keys = ['anchor', 'relation', 'target']
-            sub_keys = ['identity', 'attribute']
-            # print(ins)
+            ins = eval(ref['instruction'])
             for key in keys:
                 if key != 'relation':
-                    if key in ins.keys() and isinstance(ins[key], dict):
-                        if isinstance(ins[key][sub_keys[0]], dict):
-                            instructions.append(str(ins[key][sub_keys[0]].values())[0].split()[0].split('-')[0].split('_')[0].lower())
-                            instructions_mask.append(int(instructions[-1]!='null'))
-                        elif sub_keys[0] in ins[key].keys() and ins[key][sub_keys[0]] is not None and ins[key][sub_keys[0]] != '':
-                            instructions.append(ins[key][sub_keys[0]].split()[0].split('-')[0].split('_')[0].lower())
-                            instructions_mask.append(int(instructions[-1]!='null'))
-                        else:
-                            instructions.append('null')
-                            instructions_mask.append(0)       
-                        try:        
-                            # if isinstance(ins[key], dict):
-                            if sub_keys[1] in ins[key].keys() and ins[key][sub_keys[0]] is not None and  ins[key][sub_keys[0]] != '' and  ins[key][sub_keys[0]] != 'null' and isinstance(ins[key][sub_keys[0]], dict):
-                                if  '0' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['0'], dict):
-                                    instructions.append(str(ins[key][sub_keys[1]]['0'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
-                                    instructions_mask.append(int(instructions[-1]!='null'))
-                                elif '0' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['0'] is not None and ins[key][sub_keys[1]]['0'] != '':
-                                    instructions.append(ins[key][sub_keys[1]]['0'].split()[0].split('-')[0].split('_')[0].lower())
-                                    instructions_mask.append(int(instructions[-1]!='null'))
-                                else:
-                                    instructions.append('null')
-                                    instructions_mask.append(0)
-
-                                if '1' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['1'], dict):
-                                    instructions.append(str(ins[key][sub_keys[1]]['1'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
-                                    instructions_mask.append(int(instructions[-1]!='null'))
-                                elif '1' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['1'] is not None and ins[key][sub_keys[1]]['1'] != '':
-                                    instructions.append(ins[key][sub_keys[1]]['1'].split()[0].split('-')[0].split('_')[0].lower())
-                                    instructions_mask.append(int(instructions[-1]!='null'))
-                                else:
-                                    instructions.append('null')
-                                    instructions_mask.append(0)
-                            else:
-                                for i in range(2):
-                                    instructions.append('null')
-                                    instructions_mask.append(0)
-                        except:
-                            print(type(ins[key]), ins[key])
-                    else:
-                        for i in range(3):
-                            instructions.append('null')
+                    for sub_key in sub_keys:
+                        instructions.append(ins[key][sub_key])
+                        if ins[key][sub_key] == "null":
                             instructions_mask.append(0)
-                else:
-                    if key in ins.keys() and ins[key] is not None and ins[key] != '' :
-                        if isinstance(ins[key], dict):
-                            instructions.append(str(ins[key].values()).split()[0].lower())
-                        elif len(ins[key].split()) == 3:
-                            instructions.append(ins[key].split()[1].lower())
                         else:
-                            instructions.append(ins[key].split()[0].lower())
-                        instructions_mask.append(int(instructions[-1]!='null'))
-                    else:
-                        instructions.append('null')
+                            instructions_mask.append(1)  
+                else:
+                    instructions.append(ins[key])
+                    if ins[key] == "null":
                         instructions_mask.append(0)
-            instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-            instruction_tokens = np.array(instruction_tokens)
-            instructions_mask = np.array(instructions_mask)
+                    else:
+                        instructions_mask.append(1)
+        print(instructions_mask, instructions)
+
+
+            # if "}}}}" in ref['instruction']:
+            #     if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0][-1] != "}":
+            #         ins = eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0]+"}}}}")
+            # elif "}}}" in ref['instruction']:
+            #     if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0][-1] != "}":
+            #         ins =eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}')[0]+"}}}")
+            # else:
+            #     ins =eval(str(ref['instruction']).split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}')[0])
+            # if not isinstance(ins, dict):
+            #     ins = ins[0]
+            # keys = ['anchor', 'relation', 'target']
+            # sub_keys = ['identity', 'attribute']
+            # # print(ins)
+            # for key in keys:
+            #     if key != 'relation':
+            #         if key in ins.keys() and isinstance(ins[key], dict):
+            #             if isinstance(ins[key][sub_keys[0]], dict):
+            #                 instructions.append(str(ins[key][sub_keys[0]].values())[0].split()[0].split('-')[0].split('_')[0].lower())
+            #                 instructions_mask.append(int(instructions[-1]!='null'))
+            #             elif sub_keys[0] in ins[key].keys() and ins[key][sub_keys[0]] is not None and ins[key][sub_keys[0]] != '':
+            #                 instructions.append(ins[key][sub_keys[0]].split()[0].split('-')[0].split('_')[0].lower())
+            #                 instructions_mask.append(int(instructions[-1]!='null'))
+            #             else:
+            #                 instructions.append('null')
+            #                 instructions_mask.append(0)       
+            #             try:        
+            #                 # if isinstance(ins[key], dict):
+            #                 if sub_keys[1] in ins[key].keys() and ins[key][sub_keys[0]] is not None and  ins[key][sub_keys[0]] != '' and  ins[key][sub_keys[0]] != 'null' and isinstance(ins[key][sub_keys[0]], dict):
+            #                     if  '0' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['0'], dict):
+            #                         instructions.append(str(ins[key][sub_keys[1]]['0'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
+            #                         instructions_mask.append(int(instructions[-1]!='null'))
+            #                     elif '0' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['0'] is not None and ins[key][sub_keys[1]]['0'] != '':
+            #                         instructions.append(ins[key][sub_keys[1]]['0'].split()[0].split('-')[0].split('_')[0].lower())
+            #                         instructions_mask.append(int(instructions[-1]!='null'))
+            #                     else:
+            #                         instructions.append('null')
+            #                         instructions_mask.append(0)
+
+            #                     if '1' in ins[key][sub_keys[1]].keys() and isinstance(ins[key][sub_keys[1]]['1'], dict):
+            #                         instructions.append(str(ins[key][sub_keys[1]]['1'].values())[0].split()[0].split('-')[0].split('_')[0].lower())
+            #                         instructions_mask.append(int(instructions[-1]!='null'))
+            #                     elif '1' in ins[key][sub_keys[1]].keys() and ins[key][sub_keys[1]]['1'] is not None and ins[key][sub_keys[1]]['1'] != '':
+            #                         instructions.append(ins[key][sub_keys[1]]['1'].split()[0].split('-')[0].split('_')[0].lower())
+            #                         instructions_mask.append(int(instructions[-1]!='null'))
+            #                     else:
+            #                         instructions.append('null')
+            #                         instructions_mask.append(0)
+            #                 else:
+            #                     for i in range(2):
+            #                         instructions.append('null')
+            #                         instructions_mask.append(0)
+            #             except:
+            #                 print(type(ins[key]), ins[key])
+            #         else:
+            #             for i in range(3):
+            #                 instructions.append('null')
+            #                 instructions_mask.append(0)
+            #     else:
+            #         if key in ins.keys() and ins[key] is not None and ins[key] != '' :
+            #             if isinstance(ins[key], dict):
+            #                 instructions.append(str(ins[key].values()).split()[0].lower())
+            #             elif len(ins[key].split()) == 3:
+            #                 instructions.append(ins[key].split()[1].lower())
+            #             else:
+            #                 instructions.append(ins[key].split()[0].lower())
+            #             instructions_mask.append(int(instructions[-1]!='null'))
+            #         else:
+            #             instructions.append('null')
+            #             instructions_mask.append(0)
+        instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+        instruction_tokens = np.array(instruction_tokens)
+        instructions_mask = np.array(instructions_mask)
 
 
         
@@ -314,8 +334,10 @@ class ListeningDataset(Dataset):
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
-        context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
-        relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
+        # context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
+        # relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
+        # relation_matrix = relation_matrix[:, context_ind_of_scan, :]
+        relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
         relation_matrix = relation_matrix[:, context_ind_of_scan, :]
 
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
