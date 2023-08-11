@@ -257,6 +257,10 @@ py::array_t<double> get_relation_topn(
                             if(find(_combine.begin(), _combine.end(), temp_index) != _combine.end())
                             {
                                 prob *= object_prob(i_bsz, temp_index);
+                                if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) == 0.0)
+                                {
+                                    continue;
+                                }
                                 if (distance(i_bsz, int(temp_index/n), int(tar_obj/n)) > distance(i_bsz, int(farthest_obj/n), int(tar_obj/n)))
                                 {
                                     farthest_obj = temp_index;

@@ -220,8 +220,8 @@ def single_epoch_train(model, data_loader, criteria, optimizer, device, pad_idx,
 
     # Set the model in training mode
     model.train()
-    model.object_encoder.eval()
-    model.object_clf.eval()
+    # model.object_encoder.eval()
+    # model.object_clf.eval()
 
     np.random.seed()  # call this to change the sampling of the point-clouds
     batch_keys = make_batch_keys(args)
@@ -695,7 +695,7 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
     # epoch = checkpoint.get('epoch')
     # if epoch:
     #     return epoch
-
+    checkpoint = None
     epoch = None
     if checkpoint_file is not None:
         if map_location is None:
@@ -713,7 +713,10 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
     nsm = OrderedDict()
 
     if checkpoint_file is not None:
-        nsm = checkpoint['model']
+        # nsm = checkpoint['model']
+        for k in checkpoint['model'].keys():
+            if "token" not in k:
+                nsm[k] = checkpoint['model'][k]
         
     if obj_cls_path is not None: 
         # object_class_pth =  dict()
@@ -730,10 +733,13 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
         if key == 'model':
             value.load_state_dict(nsm, strict=False)
         else:
-            value.load_state_dict(checkpoint[key])
+            if checkpoint is not None:
+                value.load_state_dict(checkpoint[key])
 
     if epoch is not None:
         return epoch
+    else:
+        return 0
 
 
 

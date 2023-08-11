@@ -195,7 +195,7 @@ if __name__ == '__main__':
         print('Loaded a model stopped at epoch: {}.'.format(loaded_epoch))
         if not args.fine_tune:
             print('Loaded a model that we do NOT plan to fine-tune.')
-            load_state_dicts(args.resume_path, args.obj_cls_path, optimizer=optimizer, lr_scheduler=lr_scheduler)
+            load_state_dicts(args.resume_path, args.obj_cls_path, lr_scheduler=lr_scheduler)
             start_training_epoch = loaded_epoch + 1
             best_test_epoch = loaded_epoch
             best_test_acc = lr_scheduler.best

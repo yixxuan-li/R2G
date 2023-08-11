@@ -106,12 +106,12 @@ class R2G(nn.Module):
             self.attribute_pred = Attr_Estimate(n_class=13 , obj_feat = args.object_latent_dim, n_head = 2)
         
         ## relation retrieval heads
-        if args.relation_retrieval:
-            print("--------add relation retrieval head")
-            if 'sr3d' in args.referit3D_file:
-                self.mode = 'sr3d'
-            elif 'nr3d' in args.referit3D_file:
-                self.mode = 'nr3d'
+        # if args.relation_retrieval:
+        #     print("--------add relation retrieval head")
+        if 'sr3d' in args.referit3D_file:
+            self.mode = 'sr3d'
+        elif 'nr3d' in args.referit3D_file:
+            self.mode = 'nr3d'
 
         # ## NSM 
         if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
@@ -174,8 +174,9 @@ class R2G(nn.Module):
         # Using GT or not
         if self.args.use_GT:
             object_class_prob = batch['gt_class'][:, :, :-1].cuda()
+            object_class_logits = object_class_prob
         else:
-            object_class_logits = result['class_logits'].detach()
+            object_class_logits = result['class_logits']
             object_class_prob = F.softmax(object_class_logits, dim =-1)
 
         # Construct node representation 
@@ -221,9 +222,9 @@ class R2G(nn.Module):
         # node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
         ## Debug
-        count = np.zeros(9)
-        rela_dis = np.zeros((9, 10))
-        rela_sum = np.zeros((9, 10))
+        # count = np.zeros(9)
+        # rela_dis = np.zeros((9, 10))
+        # rela_sum = np.zeros((9, 10))
 
         ## Construct edge representation
         # Get the relation vocab
@@ -255,19 +256,19 @@ class R2G(nn.Module):
             edge_prob_logits = batch['edge_attr'].cuda().float()
             
             # # ## Debug
-            thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-            for i in range(batch_size):
-                # if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 4] + edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 5] == 2:
-                #     print("**********")
-                for ind, threshold in enumerate(thresholds):
-                    rela_sum[ind, batch['sr_type'][i]] = rela_sum[ind, batch['sr_type'][i]] + 1
-                    if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], batch['sr_type'][i]] >= threshold:
-                        count[ind] += 1
-                    else:
-                        rela_dis[ind, batch['sr_type'][i]] = rela_dis[ind, batch['sr_type'][i]] + 1
-            result['edge_correct'] = count
-            result['rela_dis'] = rela_dis
-            result['rela_sum'] = rela_sum
+            # thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            # for i in range(batch_size):
+            #     # if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 4] + edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], 5] == 2:
+            #     #     print("**********")
+            #     for ind, threshold in enumerate(thresholds):
+            #         rela_sum[ind, batch['sr_type'][i]] = rela_sum[ind, batch['sr_type'][i]] + 1
+            #         if edge_prob_logits[i, batch['target_pos'][i], batch['anchors_pos'][i], batch['sr_type'][i]] >= threshold:
+            #             count[ind] += 1
+            #         else:
+            #             rela_dis[ind, batch['sr_type'][i]] = rela_dis[ind, batch['sr_type'][i]] + 1
+            # result['edge_correct'] = count
+            # result['rela_dis'] = rela_dis
+            # result['rela_sum'] = rela_sum
         
         final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
 

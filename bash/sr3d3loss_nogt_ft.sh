@@ -10,9 +10,9 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --log-dir /home/user/liyixuan/R2G/log\
         --n-workers 8\
         --batch-size 64\
-        --init-lr 5e-5\
+        --init-lr 5e-4\
         --experiment-tag ${LOG_NAME}\
-        --obj-cls-alpha 0.001\
+        --obj-cls-alpha 0.2\
         --target-cls-alpha 0.2\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\
@@ -22,7 +22,10 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --use-GT False\
         --model-attr False\
         --multi-attr False\
-        --fine-tune True\
         --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl\
-        --resume-path /data1/liyixuan/R2G/log/offline_top2/08-05-2023-00-54-13/checkpoints/best_model.pth\
-        --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth\
+        # --resume-path /data1/liyixuan/R2G/log/test/08-11-2023-01-06-20/checkpoints/best_model.pth\
+        # --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth\
+        # --mode evaluate\
+        # --vocab-file /data1/liyixuan/data/sr3d_vocab.pkl
+                # --fine-tune True\
+
