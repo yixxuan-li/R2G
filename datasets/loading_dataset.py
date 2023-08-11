@@ -122,7 +122,6 @@ class ListeningDataset(Dataset):
                         instructions_mask.append(0)
                     else:
                         instructions_mask.append(1)
-        print(instructions_mask, instructions)
 
 
             # if "}}}}" in ref['instruction']:
@@ -202,7 +201,7 @@ class ListeningDataset(Dataset):
         
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, self.scan_relation[ref['scan_id']]
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, None
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label

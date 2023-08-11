@@ -222,9 +222,9 @@ class R2G(nn.Module):
         # node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300)
         
         ## Debug
-        count = np.zeros(9)
-        rela_dis = np.zeros((9, 10))
-        rela_sum = np.zeros((9, 10))
+        # count = np.zeros(9)
+        # rela_dis = np.zeros((9, 10))
+        # rela_sum = np.zeros((9, 10))
 
         ## Construct edge representation
         # Get the relation vocab
@@ -266,9 +266,10 @@ class R2G(nn.Module):
                         count[ind] += 1
                     else:
                         rela_dis[ind, batch['sr_type'][i]] = rela_dis[ind, batch['sr_type'][i]] + 1
-            result['edge_correct'] = count
-            result['rela_dis'] = rela_dis
-            result['rela_sum'] = rela_sum
+            # result['edge_correct'] = count
+            # result['rela_dis'] = rela_dis
+            # result['rela_sum'] = rela_sum
+        print(batch['target_pos'])
         
         final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
 

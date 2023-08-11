@@ -123,7 +123,8 @@ class NSMCell(nn.Module):
         ins_id,
         node_prop_similarities = None,
         relation_prop_similarity = None,
-        node_mask = None
+        node_mask = None,
+        instructions_mask = None
     ):
         """
         Dimensions:
@@ -241,8 +242,18 @@ class NSMCell(nn.Module):
             next_distribution = next_distribution_relations#(B X N)
             
         if (self.n_ins == 3 and ins_id == 2):
-            next_distribution = next_distribution * distribution
-                                          
+            next_distribution = torch.mul(next_distribution, distribution)
+
+        if (self.n_ins == 19 and ins_id == 8):
+            next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
+        elif (self.n_ins == 19 and ins_id != 18 and ins_id!= 9):
+            next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
+        
+            # next_distribution = next_distribution + distribution   
+        # next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node))
+        # if (self.n_ins == 19 and ins_id == 8):
+        #     next_distribution = F.softmax(next_distribution, dim = -1)
+        print(next_distribution[0, :])
         return next_distribution
 
 
@@ -373,13 +384,13 @@ class NSM(nn.Module):
                         instruction_prop[:, -1] = 1
                     else:
                         instruction_prop[:, :-1] = 1
-                elif self.num_instructions == 21:
-                    if ins_id == 10:
+                elif self.num_instructions == 19:
+                    if ins_id == 9:
                         instruction_prop[:, -1] = 1
                     else:
-                        instruction_prop[:, ins_id % 11] = 1
-            if instructions_mask is not None:
-                instruction_prop = torch.mul(instruction_prop,  repeat(instructions_mask[:, ins_id], 'b -> b n', n = num_property))
+                        instruction_prop[:, ins_id % 10] = 1
+            # if instructions_mask is not None:
+            #     instruction_prop = torch.mul(instruction_prop,  repeat(instructions_mask[:, ins_id], 'b -> b n', n = num_property))
             node_prop_similarities = instruction_prop[:, :-1]  #B x P(L+1)
             relation_prop_similarity = instruction_prop[:, -1]   # B 
             # update the distribution: B xN
@@ -400,12 +411,14 @@ class NSM(nn.Module):
                 ins_id,
                 node_mask = node_mask,
                 node_prop_similarities = node_prop_similarities,
-                relation_prop_similarity = relation_prop_similarity
+                relation_prop_similarity = relation_prop_similarity,
+                instructions_mask = instructions_mask
             )
             prob = torch.cat([prob, rearrange(distribution, 'b n -> b 1 n')], dim =1)
             
             
         all_instruction = instructions[:, :].unbind(1)
+        print("**********")
 
         return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
 
