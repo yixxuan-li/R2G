@@ -193,9 +193,9 @@ class ListeningDataset(Dataset):
             #         else:
             #             instructions.append('null')
             #             instructions_mask.append(0)
-        instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-        instruction_tokens = np.array(instruction_tokens)
-        instructions_mask = np.array(instructions_mask)
+            instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+            instruction_tokens = np.array(instruction_tokens)
+            instructions_mask = np.array(instructions_mask)
 
 
         

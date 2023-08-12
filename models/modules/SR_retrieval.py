@@ -5,7 +5,7 @@ import numpy as np
 from itertools import combinations
 import threading
 import sys 
-sys.path.append("/home/yixuan/R2G/models/modules/relation_calculation/build")
+sys.path.append("/home/yixuan/referit_my/referit3d/models/backbone/example/build")
 import relation
 from einops import rearrange, repeat
  

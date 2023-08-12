@@ -244,16 +244,23 @@ class NSMCell(nn.Module):
         if (self.n_ins == 3 and ins_id == 2):
             next_distribution = torch.mul(next_distribution, distribution)
 
-        if (self.n_ins == 19 and ins_id == 8):
-            next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
-        elif (self.n_ins == 19 and ins_id != 18 and ins_id!= 9):
-            next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
-        
+        if instructions_mask is not None:
+            if (self.n_ins == 19 and ins_id == 8):
+                next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
+            elif (self.n_ins == 19 and ins_id and ins_id!= 9):
+                next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
+        else:
+            if (self.n_ins == 19 and ins_id == 8):
+                next_distribution = next_distribution + distribution
+            elif (self.n_ins == 19 and ins_id and ins_id!= 9):
+                next_distribution = next_distribution + distribution
+
+
             # next_distribution = next_distribution + distribution   
         # next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node))
         # if (self.n_ins == 19 and ins_id == 8):
         #     next_distribution = F.softmax(next_distribution, dim = -1)
-        print(next_distribution[0, :])
+        # print(next_distribution[0, :])
         return next_distribution
 
 
@@ -418,7 +425,7 @@ class NSM(nn.Module):
             
             
         all_instruction = instructions[:, :].unbind(1)
-        print("**********")
+        # print("**********")
 
         return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
 

@@ -5,7 +5,7 @@ LOG_NAME=$2
 
 
 CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
-        -scannet-file /home/yixuan/data/keep_all_points_00_view_with_global_scan_alignment_relation_ready.pkl\
+        -scannet-file /home/yixuan/data/keep_all_points_00_view_with_global_scan_alignment_relation.pkl\
         -referit3D-file /home/yixuan/data/88_p_nr3d.csv\
         --log-dir /home/yixuan/R2G/log\
         --n-workers 8\

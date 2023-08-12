@@ -722,6 +722,8 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
                 _k = k.replace("scene_graph.single_object_encoder", "object_encoder")
                 nsm[_k] = v
             if "scene_graph.object_mlp" in k:
+                if '8' in k:
+                    continue
                 _k = k.replace("scene_graph.object_mlp", "object_clf")
                 nsm[_k] = v
 
@@ -729,8 +731,8 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
     for key, value in kwargs.items():
         if key == 'model':
             value.load_state_dict(nsm, strict=False)
-        else:
-            value.load_state_dict(checkpoint[key])
+        # else:
+        #     value.load_state_dict(checkpoint[key])
 
     if epoch is not None:
         return epoch
