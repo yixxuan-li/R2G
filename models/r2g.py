@@ -311,7 +311,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     # Tokenizer the properties and concept token
     color_semantic = ['white', 'blue', 'brown', 'black', 'red', 'green', 'grey', 'yellow', 'purple', 'sliver', 'gold', 'pink', 'orange']
-    relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right']
+    relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right', 'between']
     if args.model_attr:
         if args.multi_attr:
             # Tokenizer the attribute
@@ -415,7 +415,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         
     relation_clf = None
     if args.relation_cls_alpha > 0 and not args.implicity_instruction:
-        relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
+        relation_clf = text_decoder_for_clf(args.word_embedding_dim, 11)
     
 
 

@@ -94,17 +94,17 @@ class ListeningDataset(Dataset):
         instruction_tokens = None
         instructions_mask = None
 
-        # if 'instruction' in ref.keys():
-        #     instructions = []
-        #     for k, v in eval(ref['instruction']).items():
-        #         instructions.append(v.lower())
-        #     instructions.reverse()
-        #     instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-        #     instruction_tokens = np.array(instruction_tokens)
-
         if 'instruction' in ref.keys():
             instructions = []
-            instructions_mask = []
+            for k, v in eval(ref['instruction']).items():
+                instructions.append(v.lower())
+            instructions.reverse()
+            instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+            instruction_tokens = np.array(instruction_tokens)
+            instructions_mask = np.array([1, 1, 1])
+        # if 'instruction' in ref.keys():
+        #     instructions = []
+        #     instructions_mask = []
             # if "}}}}" in ref['instruction']:
             #     if ref['instruction'].split('.')[0].split('AND')[0].split('OR')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0][-1] != "}":
             #         ins = eval(str(ref['instruction']).split('AND')[0].split('(Note')[0].split('Note')[0].split('}}}}')[0]+"}}}}")
@@ -174,9 +174,9 @@ class ListeningDataset(Dataset):
             #         else:
             #             instructions.append('null')
             #             instructions_mask.append(0)
-            instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-            instruction_tokens = np.array(instruction_tokens)
-            instructions_mask = np.array(instructions_mask)
+            # instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+            # instruction_tokens = np.array(instruction_tokens)
+            # instructions_mask = np.array(instructions_mask)
 
 
         
@@ -321,8 +321,8 @@ class ListeningDataset(Dataset):
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
-        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
-        res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
+        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
+        res['edge_attr'][:res['context_size'], :res['context_size'], :-1] = torch.tensor(relation_matrix)
 
         # # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
@@ -451,7 +451,8 @@ class ListeningDataset(Dataset):
                 'supporting': 6, 
                 'supported-by': 7, 
                 'left': 8,
-                'right': 9
+                'right': 9,
+                'between': 10
                 }
             if sr_type in relation.keys():
                 sr = relation[sr_type]

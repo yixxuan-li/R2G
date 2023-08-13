@@ -18,7 +18,7 @@ from config.arguments import parse_arguments
 from datasets.neural_net_oriented import load_scan_related_data, load_referential_data
 from datasets.neural_net_oriented import compute_auxiliary_data, trim_scans_per_referit3d_data
 from datasets.loading_dataset import make_data_loaders
-from utils import set_gpu_to_zero_position, create_logger, seed_training_code, Visualizer
+from utils import set_gpu_to_zero_position, create_logger, seed_training_code, analyze_predictions, Visualizer
 from models.r2g import create_r2g_net
 from utils import single_epoch_train, evaluate_on_dataset, load_state_dicts, save_state_dicts, save_predictions_for_visualization
 from datasets.utils import dataset_to_dataloader
@@ -279,11 +279,10 @@ if __name__ == '__main__':
         logger.info('Finished training successfully. Good job!')
 
     elif args.mode == 'evaluate':
-        meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
-        print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
-        print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
-        print('Text-Clf-Accuracy {:.4f}:'.format(meters['test_txt_cls_acc']))
-        exit(0)
+        # meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
+        # print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
+        # print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
+        # print('Text-Clf-Accuracy {:.4f}:'.format(meters['test_txt_cls_acc']))
 
         # out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
         # res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
@@ -291,37 +290,47 @@ if __name__ == '__main__':
         # print(res)
         
 
-        def collate_my(batch_data):
-            batch_data.sort(key= lambda data: len(data['tokens']), reverse=True)
-            out = {}
-            for key in batch_data[0].keys():
-                out[key] = [x[key] for x in batch_data]
+        # def collate_my(batch_data):
+        #     batch_data.sort(key= lambda data: len(data['tokens']), reverse=True)
+        #     out = {}
+        #     for key in batch_data[0].keys():
+        #         out[key] = [x[key] for x in batch_data]
 
-            for key in out.keys():
-                if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
-                    out[key] = torch.stack(out[key])
-                elif key in ['lang_mask', 'tokens', 'token_embedding']:
-                    out[key] = pad_sequence(out[key], batch_first=True)
-                elif key in ['context_size']:
-                    out[key] = torch.Tensor(np.array(out[key])).int()
-                elif key in ['target_pos', 'class_labels']:
-                    out[key] = torch.LongTensor(np.array(out[key]))
-                elif key in ['utterance', 'stimulus_id', 'scan_id']:
-                    continue
-                else:
-                    out[key] = torch.Tensor(np.array(out[key]))
-            # out['tokens'] = pad_sequence(out['tokens'], batch_first=True)
-            return out
+        #     for key in out.keys():
+        #         if key in ['object_mask', 'object_diag_mask', 'edge_attr', 'gt_class', 'tb_attr', 'mc_attr']:
+        #             out[key] = torch.stack(out[key])
+        #         elif key in ['lang_mask', 'tokens', 'token_embedding']:
+        #             out[key] = pad_sequence(out[key], batch_first=True)
+        #         elif key in ['context_size']:
+        #             out[key] = torch.Tensor(np.array(out[key])).int()
+        #         elif key in ['target_pos', 'class_labels']:
+        #             out[key] = torch.LongTensor(np.array(out[key]))
+        #         elif key in ['utterance', 'stimulus_id', 'scan_id']:
+        #             continue
+        #         else:
+        #             out[key] = torch.Tensor(np.array(out[key]))
+        #     # out['tokens'] = pad_sequence(out['tokens'], batch_first=True)
+        #     return out
 
 
         # #prepare for 3d visual 
         references = data_loaders['test'].dataset.references
-        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020, collate_fn = collate_my)
+        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020)
         assert d_loader.dataset.references is references
         vis_res = save_predictions_for_visualization(model, d_loader, device, channel_last=True, seed=2020)
         
         print("get the scenes for visualization")
+        key = ['scene0221_00', 'scene0697_03']
         for i_index in range(len(vis_res)): ##i_index: per utturance index
+            if vis_res[i_index]['correct']:
+                continue
+            else:
+                if vis_res[i_index]['scan_id'] in key:
+                    continue
+                else:
+                    key.append(vis_res[i_index]['scan_id'])
+
+            
             # if vis_res[i_index]['utterance'] != "it is the desk closet to the brown door":
             # if "desk closet to" not in vis_res[i_index]['utterance']:
             #     continue
@@ -331,8 +340,8 @@ if __name__ == '__main__':
             # print(vis_res[i_index]['attention_index'][1][0])
             # if "far" in vis_res[i_index]['utterance'] or "near" in vis_res[i_index]['utterance'] or "close" in vis_res[i_index]['utterance']:
             #     continue
-            obj_class = vis_res[i_index]['class_label']
-            out = {}
+            # obj_class = vis_res[i_index]['class_label']
+            # out = {}
             # get scan
             scan = data_loaders['test'].dataset.scans[vis_res[i_index]['scan_id']]
             ppos = vis_res[i_index]['predicted_target_pos']
@@ -341,7 +350,7 @@ if __name__ == '__main__':
 
             # out['scene_size'] = vis_res[i_index]['scene_size'].tolist()
             # out['scene_center'] = vis_res[i_index]['scene_center'].tolist()
-            edges = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
+            # edges = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
             # edge = {}
             # for i, _edge in enumerate(edges):
             #     edge[_edge] = vis_res[i_index]['edge_prob'][ppos, pos][i].tolist()
@@ -500,7 +509,7 @@ if __name__ == '__main__':
 
             
             # pos_id = vis_res[i_index]['object_ids']
-            director = '/home/user/liyixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
+            director = '/data1/liyixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
             scan.visualize_heatmap(pid= p_id, id = t_id, pos_id = None, filedir = director, utterance = vis_res[i_index]['utterance'].replace("/", "or"))
             # with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
             #     json.dump(out, file, indent = 4)
