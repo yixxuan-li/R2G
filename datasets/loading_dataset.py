@@ -321,8 +321,8 @@ class ListeningDataset(Dataset):
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
-        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
-        res['edge_attr'][:res['context_size'], :res['context_size'], :-1] = torch.tensor(relation_matrix)
+        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
+        res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
 
         # # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
@@ -451,8 +451,7 @@ class ListeningDataset(Dataset):
                 'supporting': 6, 
                 'supported-by': 7, 
                 'left': 8,
-                'right': 9,
-                'between': 10
+                'right': 9
                 }
             if sr_type in relation.keys():
                 sr = relation[sr_type]

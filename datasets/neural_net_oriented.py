@@ -57,11 +57,11 @@ def load_referential_data(args, referit_csv, scans_split):
               'mention to the target class {}->{}'.format(n_original, len(referit_data)))
         
     # discard between samples
-    # if "sr3d" in referit_csv:
-    #     n_original = len(referit_data)
-    #     referit_data = referit_data[referit_data['reference_type'] != 'between']
-    #     referit_data.reset_index(drop=True, inplace=True)
-    #     print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
+    if "sr3d" in referit_csv:
+        n_original = len(referit_data)
+        referit_data = referit_data[referit_data['reference_type'] != 'between']
+        referit_data.reset_index(drop=True, inplace=True)
+        print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
 
 
     if  not args.use_LLM:

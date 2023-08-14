@@ -566,6 +566,11 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
     np.random.seed(seed)
     ind = 0
     for batch in data_loader:
+        if ind <= 10:
+            ind += 1
+            continue
+        ind += 1
+
         # Move the batch to gpu
         for k in batch_keys:
             if len(batch[k]) > 0:
@@ -592,7 +597,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 'object_ids': batch['object_ids'][i],
                 'context_size': batch['context_size'][i],
                 'correct': batch['target_pos'][i].cpu() == res['logits'][i].argmax(-1).cpu(),
-                # 'prob': res['prob'][i].cpu().numpy(),
+                'prob': res['prob'][i].cpu().numpy(),
                 # 'obj_prob': res['class_logits'][i].cpu().numpy(),
                 'class_label': batch['class_labels'][i].cpu().numpy(),
                 # 'attention_data': adata.cpu().numpy(),
@@ -619,7 +624,8 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 #'is_easy': batch['is_easy'][i]
                 }
             )
-    
+        if ind  == 15:
+            break
     return res_list
 
 
