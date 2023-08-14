@@ -191,14 +191,14 @@ class NSMCell(nn.Module):
         # next_distribution_states = F.softmax(self.weighten_state(node_scores).squeeze(2), dim =1)
         # if ins_id % 2 == 0:
         #     next_distribution_states = F.softmax((node_scores @ (self.weight_state_score).view(1, -1, 1)).squeeze(2), dim =1)
-        if (self.n_ins == 3 and ins_id == 0) or (self.n_ins == 19 and ins_id != 9):
+        if (self.n_ins == 3 and ins_id == 0):
             next_distribution_states = F.softmax(
                 rearrange(
                     torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
                 ) + node_mask,
                 dim = 1
             )
-        if (self.n_ins == 3 and ins_id == 2):
+        if (self.n_ins == 3 and ins_id == 2) or (self.n_ins == 19 and ins_id != 9):
             next_distribution_states = rearrange(
                     torch.matmul(node_scores, repeat(self.weight_state_score, 'h -> b h 1', b = batch_size)), 'b n 1 -> b n'
                 )
@@ -244,15 +244,33 @@ class NSMCell(nn.Module):
         if (self.n_ins == 3 and ins_id == 2):
             next_distribution = torch.mul(next_distribution, distribution)
 
+        # if instructions_mask is not None:
+        #     if (self.n_ins == 19 and ins_id == 8):
+        #         next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
+        #     elif (self.n_ins == 19 and ins_id!= 9):
+        #         next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
+        # else:
+        #     if (self.n_ins == 19 and ins_id == 8):
+        #         next_distribution = next_distribution + distribution
+        #     elif (self.n_ins == 19 and ins_id!= 9):
+        #         next_distribution = next_distribution + distribution
+
+
+
+
         if instructions_mask is not None:
             if (self.n_ins == 19 and ins_id == 8):
-                next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
-            elif (self.n_ins == 19 and ins_id and ins_id!= 9):
+                next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
+            elif (self.n_ins == 19 and ins_id == 9):
+                next_distribution = F.softmax(torch.mul(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)), distribution), dim = -1)
+            elif (self.n_ins == 19 and ins_id!= 9):
                 next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
         else:
             if (self.n_ins == 19 and ins_id == 8):
-                next_distribution = next_distribution + distribution
-            elif (self.n_ins == 19 and ins_id and ins_id!= 9):
+                next_distribution = F.softmax(next_distribution + distribution, dim =-1)
+            elif (self.n_ins == 19 and ins_id == 9):
+                next_distribution = F.softmax(torch.mul(next_distribution, distribution), dim =-1)
+            elif (self.n_ins == 19 and ins_id!= 9):
                 next_distribution = next_distribution + distribution
 
 
@@ -361,8 +379,12 @@ class NSM(nn.Module):
                 relation_instruction = torch.matmul(lang_relation_logits, concept_vocab[concept_vocab_seg[-2]:])
                 
             if self.target_clf is not None:
-                target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-                target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+                if self.num_instructions == 3:
+                    target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
+                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+                elif self.num_instructions == 19:
+                    target_logits = self.target_clf(instructions[:, :].unbind(1)[10])
+                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)

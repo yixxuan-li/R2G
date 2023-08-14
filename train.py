@@ -18,7 +18,7 @@ from config.arguments import parse_arguments
 from datasets.neural_net_oriented import load_scan_related_data, load_referential_data
 from datasets.neural_net_oriented import compute_auxiliary_data, trim_scans_per_referit3d_data
 from datasets.loading_dataset import make_data_loaders
-from utils import set_gpu_to_zero_position, create_logger, seed_training_code, Visualizer
+from utils import set_gpu_to_zero_position, create_logger, seed_training_code, Visualizer, analyze_predictions
 from models.r2g import create_r2g_net
 from utils import single_epoch_train, evaluate_on_dataset, load_state_dicts, save_state_dicts, save_predictions_for_visualization
 from datasets.utils import dataset_to_dataloader
@@ -282,13 +282,12 @@ if __name__ == '__main__':
         meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
         print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
         print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
-        print('Text-Clf-Accuracy {:.4f}:'.format(meters['test_txt_cls_acc']))
-        exit(0)
 
-        # out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
-        # res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
-        #                          args, out_file=out_file)
-        # print(res)
+
+        out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
+        res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
+                                 args, out_file=out_file)
+        print(res)
         
 
         def collate_my(batch_data):

@@ -9,7 +9,7 @@ import torch
 from .utils import check_segmented_object_order, sample_scan_object, pad_samples, objects_bboxes
 from .utils import instance_labels_of_context, mean_rgb_unit_norm_transform, decode_stimulus_string
 from .utils import get_allocentric_relation
-from referit3d.utils import unpickle_data
+from .utils import unpickle_data
 from models import token_embeder
 from torch.nn.utils.rnn import pad_sequence
 
@@ -201,7 +201,7 @@ class ListeningDataset(Dataset):
         
             
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, None
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, self.scan_relation[ref['scan_id']]
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -333,10 +333,8 @@ class ListeningDataset(Dataset):
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
-        # context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
-        # relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
-        # relation_matrix = relation_matrix[:, context_ind_of_scan, :]
-        relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
+        context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
+        relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
         relation_matrix = relation_matrix[:, context_ind_of_scan, :]
 
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
