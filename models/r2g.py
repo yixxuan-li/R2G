@@ -184,7 +184,8 @@ class R2G(nn.Module):
         # Identity information 
         object_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[:self.concept_vocab_seg[0]], 'c h -> b c h', b = batch_size))
         # Function information
-        function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
+        if not self.args.multi_attr:
+            function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
         # Color information
         color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
         if self.args.model_attr:
@@ -194,15 +195,15 @@ class R2G(nn.Module):
                 obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
                 obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-                ls_attr = torch.matmul(ls_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
-                tl_attr = torch.matmul(tl_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]], 'c h -> b c h', b = batch_size))
-                mc_attr = torch.matmul(batch['mc_attr'], repeat(concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]], 'c h -> b c h', b = batch_size)) 
-                tb_attr = torch.matmul(batch['tb_attr'], repeat(concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]], 'c h -> b c h', b = batch_size))
-                lr_attr = torch.matmul(F.softmax(lr_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]], 'c h -> b c h', b = batch_size))
-                losh_attr = torch.matmul(losh_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]], 'c h -> b c h', b = batch_size))
-                curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]], ' c h -> b c h', b = batch_size))
+                ls_attr = torch.matmul(ls_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
+                tl_attr = torch.matmul(tl_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
+                mc_attr = torch.matmul(batch['mc_attr'], repeat(concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]], 'c h -> b c h', b = batch_size)) 
+                tb_attr = torch.matmul(batch['tb_attr'], repeat(concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]], 'c h -> b c h', b = batch_size))
+                lr_attr = torch.matmul(F.softmax(lr_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]], 'c h -> b c h', b = batch_size))
+                losh_attr = torch.matmul(losh_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]], 'c h -> b c h', b = batch_size))
+                curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]], ' c h -> b c h', b = batch_size))
 
-                node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
+                node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
             else:
                 ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
                 lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1),\
@@ -323,7 +324,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
             end = ['leftmost', 'rightmost']
             length = ['long', 'short']
             curve = ['curve', 'pad']
-            property_semantic = ['identity', 'color', 'function', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations']
+            property_semantic = ['identity', 'color', 'size', 'height', 'position', 'orientation', 'end', 'length', 'curve', 'relations']
             # Embedding the attributes
             size_token = vocab.encode(size, add_begin_end = False)[0] 
             height_token = vocab.encode(height, add_begin_end = False)[0]
@@ -353,18 +354,17 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     if args.model_attr:
         if args.multi_attr:
-            concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_token
+            concept_vocab = object_semantic_filtertoken + color_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_token
             concept_vocab_seg = [len(object_semantic_filtertoken), \
                                 len(object_semantic_filtertoken) + len(color_semantic_token), \
-                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
-                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token), \
-                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token), \
-                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token), \
-                                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
-                                                        len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
-                                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
-                                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token), \
-                                                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token) + len(relation_semantic_token)]
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token), \
+                                        len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token) + len(height_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token) + len(height_token) + len(position_token), \
+                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(size_token) + len(height_token) + len(position_token) + len(orientation_token), \
+                                                    len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length), \
+                                                        len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token), \
+                                                            len(object_semantic_filtertoken) + len(color_semantic_token)  +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token), \
+                                                                len(object_semantic_filtertoken) + len(color_semantic_token) +len(size_token) + len(height_token) + len(position_token) + len(orientation_token) + len(end_length) + len(length_token) + len(curve_token) + len(relation_semantic_token)]
         else:
             concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + attribute_token + relation_semantic_token
             concept_vocab_seg = [len(object_semantic_filtertoken), \

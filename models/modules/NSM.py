@@ -239,8 +239,11 @@ class NSMCell(nn.Module):
         if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 19 and ins_id != 9):
             next_distribution = next_distribution_states  #(B x N)
         elif (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 19 and ins_id == 9):
-            next_distribution = next_distribution_relations#(B X N)
-            
+            if instructions_mask is not None:
+                next_distribution = torch.mul(next_distribution_relations, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node))#(B X N)
+            else:
+                next_distribution = next_distribution_relations
+                
         if (self.n_ins == 3 and ins_id == 2):
             next_distribution = torch.mul(next_distribution, distribution)
 
@@ -261,10 +264,10 @@ class NSMCell(nn.Module):
         if instructions_mask is not None:
             if (self.n_ins == 19 and ins_id == 8):
                 next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
-            elif (self.n_ins == 19 and ins_id == 9):
-                next_distribution = F.softmax(torch.mul(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)), distribution), dim = -1)
+            # elif (self.n_ins == 19 and ins_id == 10):
+            #     next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
             elif (self.n_ins == 19 and ins_id!= 9):
-                next_distribution = torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution
+                next_distribution = F.softmax(torch.mul(next_distribution, repeat(instructions_mask[:,ins_id], 'b -> b n', n = num_node)) + distribution, dim = -1)
         else:
             if (self.n_ins == 19 and ins_id == 8):
                 next_distribution = F.softmax(next_distribution + distribution, dim =-1)
