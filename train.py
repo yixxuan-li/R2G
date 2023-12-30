@@ -279,15 +279,15 @@ if __name__ == '__main__':
         logger.info('Finished training successfully. Good job!')
 
     elif args.mode == 'evaluate':
-        meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
-        print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
-        print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
+        # meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
+        # print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
+        # print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
 
 
-        out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
-        res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
-                                 args, out_file=out_file)
-        print(res)
+        # out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
+        # res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
+        #                          args, out_file=out_file)
+        # print(res)
         
 
         def collate_my(batch_data):
@@ -309,27 +309,22 @@ if __name__ == '__main__':
                     continue
                 else:
                     out[key] = torch.Tensor(np.array(out[key]))
-            # out['tokens'] = pad_sequence(out['tokens'], batch_first=True)
+
             return out
 
 
         # #prepare for 3d visual 
         references = data_loaders['test'].dataset.references
-        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020, collate_fn = collate_my)
+        d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020)
         assert d_loader.dataset.references is references
         vis_res = save_predictions_for_visualization(model, d_loader, device, channel_last=True, seed=2020)
         
         print("get the scenes for visualization")
         for i_index in range(len(vis_res)): ##i_index: per utturance index
-            # if vis_res[i_index]['utterance'] != "it is the desk closet to the brown door":
-            # if "desk closet to" not in vis_res[i_index]['utterance']:
-            #     continue
-            # if "scene0462_00" not in vis_res[i_index]['scan_id']:
-            #     continue
-            # print(vis_res[i_index]['utterance'])
-            # print(vis_res[i_index]['attention_index'][1][0])
-            # if "far" in vis_res[i_index]['utterance'] or "near" in vis_res[i_index]['utterance'] or "close" in vis_res[i_index]['utterance']:
-            #     continue
+            # if vis_res[i_index]['utterance'] == "the cabinets that are far away from the recycling bin":
+            #     print(i_index)
+            #     print("____________")
+
             obj_class = vis_res[i_index]['class_label']
             out = {}
             # get scan
@@ -338,9 +333,9 @@ if __name__ == '__main__':
             pos = vis_res[i_index]['target_pos']
             # edge = vis_res[i_index]['edge_prob']
 
-            # out['scene_size'] = vis_res[i_index]['scene_size'].tolist()
-            # out['scene_center'] = vis_res[i_index]['scene_center'].tolist()
-            edges = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
+            out['scene_size'] = vis_res[i_index]['scene_size'].tolist()
+            out['scene_center'] = vis_res[i_index]['scene_center'].tolist()
+            # edges = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
             # edge = {}
             # for i, _edge in enumerate(edges):
             #     edge[_edge] = vis_res[i_index]['edge_prob'][ppos, pos][i].tolist()
@@ -373,13 +368,13 @@ if __name__ == '__main__':
 
             
             # print(ppos, pos)
-            # prob = vis_res[i_index]['prob']
+            prob = vis_res[i_index]['prob']
             
             # pos_prob = vis_res[i_index]['confidences']
             
             # anchor_pos = vis_res[i_index]['anchor_pos']
             
-            # id_to_class = {v:k for k, v in class_to_idx.items()}
+            id_to_class = {v:k for k, v in class_to_idx.items()}
             # out = {}
             # out['class_label'] = id_to_class[int(vis_res[i_index]['target_class'])]
             # out['anchor_class'] = id_to_class[int(vis_res[i_index]['anchor_class'])]
@@ -387,19 +382,30 @@ if __name__ == '__main__':
             
             # anchor_tar_edge = vis_res[i_index]['edge_prob'][pos][anchor_pos]
             
-            # objects = {}
-            # for i in range(vis_res[i_index]['context_size']):
-            #     object_info = {}
-            #     # object_info["attention"] = prob[:,i].tolist()
-            #     simi = {}
-            #     for j in range(20):
-            #         simi[str(j) + vocabs[vis_res[i_index]['simi_index'][i][j]]] = vis_res[i_index]['simi'][i][j].tolist()
+            objects = {}
+            obj_pred_index = np.argsort(vis_res[i_index]['obj_prob'], axis = -1)
+            for i in range(vis_res[i_index]['context_size']):
+                object_info = {}
+                object_info["attention"] = prob[:,i].tolist()
+                # simi = {}
+                # for j in range(20):
+                #     simi[str(j) + vocabs[vis_res[i_index]['simi_index'][i][j]]] = vis_res[i_index]['simi'][i][j].tolist()
                    
-            #     object_info["simi"] = simi
-            #     # for j in range(9):
-            #     #     object_info[id_to_class[int(vis_res[i_index]['class_index'][i][j])]] = vis_res[i_index]['objects_pred'][i][j].tolist()
-            #     # attention['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]] + ' pred:' +  id_to_class[obj_predclass[i]]] = prob[:,i].tolist()
-            #     objects['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]]] = object_info
+                # object_info["simi"] = simi
+                # for j in range(9):
+                #     object_info[id_to_class[int(vis_res[i_index]['class_index'][i][j])]] = vis_res[i_index]['objects_pred'][i][j].tolist()
+                # attention['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]] + ' pred:' +  id_to_class[obj_predclass[i]]] = prob[:,i].tolist()
+                
+
+                for i in range(3):
+                    pred_class = {
+                                    id_to_class[obj_pred_index[i][-1]]: (obj_pred_index[i][-1]).tolist(),
+                                    id_to_class[obj_pred_index[i][-2]]: (obj_pred_index[i][-2]).tolist(),
+                                    id_to_class[obj_pred_index[i][-3]]: (obj_pred_index[i][-3]).tolist(),
+                                    }
+                
+                object_info['pred_class'] = pred_class
+                objects['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]]] = object_info
             
             # ins_simi = {}
             # print(vis_res[i_index]['ins_simi_index'].shape, vis_res[i_index]['ins_simi_index'])
@@ -426,18 +432,12 @@ if __name__ == '__main__':
             # ins_simi['ins3_em'] = vis_res[i_index]['intruction'][2].tolist()
             
             # out['ins_simi'] = ins_simi
-                
-            # out['object_info'] =objects
+            
+            out['object_info'] =objects
 
             #pred_class
             # print(type(vis_res[i_index]['obj_prob'][atten_obj[0]]), prob, atten_obj, np.shape(vis_res[i_index]['obj_prob'][atten_obj[0]]), np.shape(vis_res[i_index]['obj_prob']))
-            # for i in range(len(atten_obj)):
-            #     pred_class[i] = {
-            #                         id_to_class[np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-1]]: (vis_res[i_index]['obj_prob'][atten_obj[8 - i]][np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-1]]).tolist(),
-            #                         id_to_class[np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-2]]: (vis_res[i_index]['obj_prob'][atten_obj[8 - i]][np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-2]]).tolist(),
-            #                         id_to_class[np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-3]]: (vis_res[i_index]['obj_prob'][atten_obj[8 - i]][np.argsort(vis_res[i_index]['obj_prob'][atten_obj[8 - i]])[-3]]).tolist(),
-            #                         "gt" : id_to_class[vis_res[i_index]['class_label'][atten_obj[8 - i]]]
-            #                     }
+
 
             ## SR
             # relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
@@ -497,11 +497,11 @@ if __name__ == '__main__':
             
             
 
-            
-            # pos_id = vis_res[i_index]['object_ids']
-            director = '/home/user/liyixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
-            scan.visualize_heatmap(pid= p_id, id = t_id, pos_id = None, filedir = director, utterance = vis_res[i_index]['utterance'].replace("/", "or"))
-            # with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
-            #     json.dump(out, file, indent = 4)
-            # print("***************")
-            # scan.visualize_ground(p_id, t_id, '/data1/liyixuan/referit_my/vis/{}_{}_{}.ply'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or")))
+            if not vis_res[i_index]['correct']:
+                # pos_id = vis_res[i_index]['object_ids']
+                director = '/data1/liyixuan/R2G/vis/{}_{}_{}'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or"))
+                scan.visualize_heatmap(prob, pid= p_id, id = t_id, pos_id = None, filedir = director, utterance = vis_res[i_index]['utterance'].replace("/", "or"))
+                with open(director + '/{}.json'.format(vis_res[i_index]['utterance'].replace("/", "or")), 'w') as file:
+                    json.dump(out, file, indent = 4)
+                # print("***************")
+                # scan.visualize_ground(p_id, t_id, '/data1/liyixuan/referit_my/vis/{}_{}_{}.ply'.format(vis_res[i_index]['correct'],vis_res[i_index]['scan_id'],vis_res[i_index]['utterance'].replace("/", "or")))

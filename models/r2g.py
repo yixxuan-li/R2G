@@ -6,6 +6,7 @@ from collections import defaultdict
 import torch.nn.functional as F
 import numpy as np
 from einops import rearrange, repeat
+import pdb
 
 
 from . import MLP
@@ -124,7 +125,7 @@ class R2G(nn.Module):
             self.nsm = NSM( args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 19, 
+                            num_instructions = 3, 
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
@@ -135,7 +136,7 @@ class R2G(nn.Module):
                             args,
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
-                            num_instructions = 19, 
+                            num_instructions = 3, 
                             description_hidden_size = 256
                             )
 
@@ -236,7 +237,9 @@ class R2G(nn.Module):
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
             edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, object_class_logits.cpu(), batch['edge_attr'].numpy(),  batch['edge_distance'].numpy(), batch['object_mask'], batch['context_size']).cuda().float()
+            object_class_logits_copy = object_class_logits.cpu()
+            object_class_logits_copy[:, :, :2] = 5 * object_class_logits_copy[:, :, :2]
+            edge_prob_logits = SR_Retrieval(self.mode, object_class_logits_copy, batch['edge_attr'].numpy(),  batch['edge_distance'].numpy(), batch['object_mask'], batch['context_size']).cuda().float()
             
             # # ## Debug
             # for i in range(batch_size):
@@ -271,9 +274,11 @@ class R2G(nn.Module):
             # result['rela_dis'] = rela_dis
             # result['rela_sum'] = rela_sum
         # print(batch['target_pos'])
-        
+        # pdb.set_trace()
         final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
-
+        
+        ## for debug
+        result['obj_prob'] = prob
             
         # Get the final weights over the nodes
         result['logits'] = final_node_distribution + batch['object_mask'].cuda()
@@ -287,7 +292,6 @@ class R2G(nn.Module):
 
         if self.args.anchor_cls_alpha > 0:
             result['anchor_logits'] = anchor_logits
-
         return result
 
 def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: int, class_to_index: dict) -> nn.Module:

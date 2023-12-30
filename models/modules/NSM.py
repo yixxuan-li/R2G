@@ -223,6 +223,7 @@ class NSMCell(nn.Module):
                 dim = 1 
             )
             
+            
         # Compute next distribution
         # B x N
         # next_distribution = F.softmax(
@@ -453,4 +454,3 @@ class NSM(nn.Module):
         # print("**********")
 
         return distribution, encoded_questions, prob, all_instruction, anchor_logits, lang_relation_logits, target_logits
-

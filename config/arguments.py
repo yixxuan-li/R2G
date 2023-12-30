@@ -73,6 +73,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--object-encoder', type=str, default='pnet_pp', choices=['pnet_pp', 'pnet', 'pointnext'])
     parser.add_argument('--relation_pred', type = str2bool, default = False, help='True to use relation_pred module')
     parser.add_argument('--relation_retrieval', type = str2bool, default = False, help='True to use relation_retrieval module')
+    parser.add_argument('--relation_fromfile', type = str2bool, default = False, help='True to use calculated relation')
 
     parser.add_argument('--object-latent-dim', type=int, default=128)
     parser.add_argument('--language-latent-dim', type=int, default=128)

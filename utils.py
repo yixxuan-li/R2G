@@ -554,7 +554,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
     Return the predictions along with the scan data for further visualization
     """
     # batch_keys = ['objects', 'tokens', 'class_labels', 'target_pos', 'scan', 'bboxes']
-    batch_keys = ['objects', 'tokens', 'class_labels', 'target_pos', 'tb_attr', 'mc_attr']#model origin return 
+    batch_keys = ['objects', 'tokens', 'class_labels', 'target_pos', 'tb_attr', 'mc_attr', 'color_onehot']#model origin return 
 
     # Set the model in eval mode
     model.eval()
@@ -596,8 +596,8 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 'object_ids': batch['object_ids'][i],
                 'context_size': batch['context_size'][i],
                 'correct': batch['target_pos'][i].cpu() == res['logits'][i].argmax(-1).cpu(),
-                # 'prob': res['prob'][i].cpu().numpy(),
-                # 'obj_prob': res['class_logits'][i].cpu().numpy(),
+                'prob': res['obj_prob'][i].cpu().numpy(),
+                'obj_prob': F.softmax(res['class_logits'][i], dim = -1).cpu().numpy(),
                 'class_label': batch['class_labels'][i].cpu().numpy(),
                 # 'attention_data': adata.cpu().numpy(),
                 # 'attention_index': aindex.cpu().numpy(),
@@ -623,7 +623,7 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 #'is_easy': batch['is_easy'][i]
                 }
             )
-        if ind ==1:
+        if ind ==0:
             break 
 
     return res_list

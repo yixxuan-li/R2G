@@ -12,7 +12,7 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --batch-size 64\
         --init-lr 5e-5\
         --experiment-tag ${LOG_NAME}\
-        --obj-cls-alpha 0.001\
+        --obj-cls-alpha 0.0\
         --target-cls-alpha 0.2\
         --anchor-cls-alpha 0.2\
         --self-supervision-alpha 0.0\

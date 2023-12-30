@@ -53,7 +53,7 @@ class ListeningDataset(Dataset):
         self.scan_relation = scan_relation
         # self.embedder = token_embeder(vocab=vocab, word_embedding_dim=args.word_embedding_dim, random_seed=args.random_seed)
         
-        self.args= args 
+        self.args = args 
 
         if not check_segmented_object_order(scans):
             raise ValueError
@@ -85,7 +85,11 @@ class ListeningDataset(Dataset):
         if 'anchor_ids' in ref.keys():
             anchors_id = int(ref['anchor_ids'].replace('[', '').replace(']', '').split(',')[0])
             anchor = scan.three_d_objects[anchors_id]
-            
+
+        # for debug    
+        flag = 0
+        if ref['utterance'] == "the cabinets that are far away from the recycling bin":
+            flag = 1
 
         sr_type = None
         if 'reference_type' in ref.keys():
@@ -94,34 +98,42 @@ class ListeningDataset(Dataset):
         instruction_tokens = None
         instructions_mask = None
 
-        # if 'instruction' in ref.keys():
-        #     instructions = []
-        #     for k, v in eval(ref['instruction']).items():
-        #         instructions.append(v.lower())
-        #     instructions.reverse()
-        #     instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
-        #     instruction_tokens = np.array(instruction_tokens)
-
-        keys = ['anchor', 'relation', 'target']
-        sub_keys = ['identity', 'color', 'size', 'height', 'position', 'vertical position', 'horizontal position', 'length', 'curve']
         if 'instruction' in ref.keys():
             instructions = []
             instructions_mask = []
-            ins = eval(ref['instruction'])
-            for key in keys:
-                if key != 'relation':
-                    for sub_key in sub_keys:
-                        instructions.append(ins[key][sub_key])
-                        if ins[key][sub_key] == "null":
-                            instructions_mask.append(0)
-                        else:
-                            instructions_mask.append(1)  
+            for k, v in eval(ref['instruction']).items():
+                instructions.append(v.lower())
+                if v != 'null':
+                    instructions_mask.append(1)
                 else:
-                    instructions.append(ins[key])
-                    if ins[key] == "null":
-                        instructions_mask.append(0)
-                    else:
-                        instructions_mask.append(1)
+                    instructions_mask.append(0)
+            instructions.reverse()
+            # instructions[1], instructions[2] = instructions[2], instructions[1]
+
+            instructions_mask.reverse()
+            # instruction_tokens, _ = self.vocab.encode(instructions, add_begin_end=False)
+            # instruction_tokens = np.array(instruction_tokens)
+
+        # keys = ['anchor', 'relation', 'target']
+        # sub_keys = ['identity', 'color', 'size', 'height', 'position', 'vertical position', 'horizontal position', 'length', 'curve']
+        # if 'instruction' in ref.keys():
+        #     instructions = []
+        #     instructions_mask = []
+        #     ins = eval(ref['instruction'])
+        #     for key in keys:
+        #         if key != 'relation':
+        #             for sub_key in sub_keys:
+        #                 instructions.append(ins[key][sub_key])
+        #                 if ins[key][sub_key] == "null":
+        #                     instructions_mask.append(0)
+        #                 else:
+        #                     instructions_mask.append(1)  
+        #         else:
+        #             instructions.append(ins[key])
+        #             if ins[key] == "null":
+        #                 instructions_mask.append(0)
+        #             else:
+        #                 instructions_mask.append(1)
 
 
             # if "}}}}" in ref['instruction']:
@@ -198,10 +210,8 @@ class ListeningDataset(Dataset):
             instructions_mask = np.array(instructions_mask)
 
 
-        
-            
 
-        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, self.scan_relation[ref['scan_id']]
+        return scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, ref['target_id'], anchors_id, instruction_tokens, instructions_mask, self.scan_relation[ref['scan_id']], flag
 
     def prepare_distractors(self, scan, target, anchor = None):
         target_label = target.instance_label
@@ -262,7 +272,7 @@ class ListeningDataset(Dataset):
 
     def __getitem__(self, index):
         res = dict()
-        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask, scan_relation = self.get_reference_data(index)
+        scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask, scan_relation, flag = self.get_reference_data(index)
         # Make a context of distractors
         context, context_ind_of_scan = self.prepare_distractors(scan, target, anchor)
         # print(scan.relation_matrix)
@@ -333,15 +343,25 @@ class ListeningDataset(Dataset):
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
-        context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
-        relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
-        relation_matrix = relation_matrix[:, context_ind_of_scan, :]
+        if self.args.relation_fromfile is not None:
+            context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
+            relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
+            relation_matrix = relation_matrix[:, context_ind_of_scan, :]
 
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
-        res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
+        if self.args.relation_fromfile is not None:
+            res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
+
+        # for debug
+        # if flag:
+        #     idx_to_class = {v:k for k, v in self.class_to_idx.items()}
+        #     print(idx_to_class[res['class_labels'][13]], idx_to_class[res['class_labels'][3]], idx_to_class[res['class_labels'][9]])
+        #     print(relation_matrix[3, 13], relation_matrix[9, 13])
+        #     relation_matrix[9, 13, 5] = 0
+        #     print(relation_matrix[3, 13], relation_matrix[9, 13])
 
         # # model the top and bottom
         res['tb_attr'] = torch.zeros([self.max_context_size, 2])
@@ -373,87 +393,87 @@ class ListeningDataset(Dataset):
         #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
 
 
-
         for i, o in enumerate(context):
             i_size = res['obj_size'][i]
             i_position = res['obj_position'][i]
             i_scene_translation = i_position - res['scene_center'] 
+
         #     # model middle or corner
-        #     if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1]:
-        #         res['mc_attr'][i, 0] = 1
-        #     if np.abs(res['scene_size'][0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(res['scene_size'][1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
-        #         res['mc_attr'][i, 1] = 1
+            # if np.abs(i_scene_translation[0])  < i_size[0] and np.abs(i_scene_translation[1]) < i_size[1]:
+            #     res['mc_attr'][i, 0] = 1
+            # if np.abs(res['scene_size'][0]/2 - np.abs(i_scene_translation[0])) < i_size[0] and np.abs(res['scene_size'][1]/2 - np.abs(i_scene_translation[1])) < i_size[1]:
+            #     res['mc_attr'][i, 1] = 1
+
         #     # for j in range(i+1, len(context)):  
             for j in range(0, len(context)):
                 if i == j:
                     continue
-        #         if context[j].has_front_direction:
-        #             allo_relation = get_allocentric_relation(context[j], context[i]) 
-        #             if allo_relation == 0:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-        #             elif allo_relation == 2:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])   
-        #             elif allo_relation == 1:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
-        #             elif allo_relation == 3:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+                if not self.args.use_GT:
+                    if context[j].has_front_direction:
+                        allo_relation = get_allocentric_relation(context[j], context[i]) 
+                        if allo_relation == 0:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+                        elif allo_relation == 2:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])   
+                        elif allo_relation == 1:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+                        elif allo_relation == 3:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
                 if i < j:
-                    j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
+                    # j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
                     j_position = res['obj_position'][j]
                     res['edge_vector'][i][j] = i_position - j_position
                     res['edge_vector'][j][i] = - res['edge_vector'][i][j]
                     res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
                     res['edge_distance'][j][i] = res['edge_distance'][i][j]
-        #             # if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
-        #             #     # support supported
-        #             #     if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
-        #             #     and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
-        #             #         # res['edge_touch'][i][j] = 1
-        #             #         if res['edge_vector'][i][j][2] > 0:
-        #             #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-        #             #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-        #             #         elif res['edge_vector'][i][j][2] < 0:
-        #             #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-        #             #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-
-        #             # above below
-        #             target_extrema = context[i].get_axis_align_bbox().extrema
-        #             target_zmin = target_extrema[2]
-        #             target_zmax = target_extrema[5]
-        #             anchor_extrema = context[j].get_axis_align_bbox().extrema
-        #             anchor_zmin = anchor_extrema[2]
-        #             anchor_zmax = anchor_extrema[5]
-        #             target_bottom_anchor_top_dist = target_zmin - anchor_zmax
-        #             target_top_anchor_bottom_dist = anchor_zmin - target_zmax
-        #             iou_2d, i_ratios, a_ratios = context[i].iou_2d(context[j])
-        #             i_target_ratio, i_anchor_ratio = i_ratios
-        #             target_anchor_area_ratio, anchor_target_area_ratio = a_ratios
-        #             # Above, Below 
-        #             if target_bottom_anchor_top_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
-        #                 res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        #                 res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-        #                 res['tb_attr'][i, 1] -= 1
-        #                 res['tb_attr'][j, 0] = 0
-        #             elif target_top_anchor_bottom_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-        #                 res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        #                 res['tb_attr'][i, 0] = 0
-        #                 res['tb_attr'][j, 1] -= 1
-        #             # supported, support
-        #             if i_target_ratio > 0.2 and abs(target_bottom_anchor_top_dist) <= 0.15 and target_anchor_area_ratio < 1.5:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-        #                 res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-        #             if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
-        #                 res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-        #                 res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-
-        #     if res['tb_attr'][i, 1] != 1:
-        #         res['tb_attr'][i, 1] = 0
-        #     if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
-        #         res['tb_attr'][i, 0] = 0
-        #         res['tb_attr'][i, 1] = 0
-
-
+                    # if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
+                    #     # support supported
+                    #     if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
+                    #     and (np.abs(res['edge_vector'][i][j][0])*2 < j_size[0] or np.abs(res['edge_vector'][i][j][0])*2 < i_size[0]):
+                    #         # res['edge_touch'][i][j] = 1
+                    #         if res['edge_vector'][i][j][2] > 0:
+                    #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                    #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                    #         elif res['edge_vector'][i][j][2] < 0:
+                    #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                    #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                    if not self.args.use_GT:
+                        # above below
+                        target_extrema = context[i].get_axis_align_bbox().extrema
+                        target_zmin = target_extrema[2]
+                        target_zmax = target_extrema[5]
+                        anchor_extrema = context[j].get_axis_align_bbox().extrema
+                        anchor_zmin = anchor_extrema[2]
+                        anchor_zmax = anchor_extrema[5]
+                        target_bottom_anchor_top_dist = target_zmin - anchor_zmax
+                        target_top_anchor_bottom_dist = anchor_zmin - target_zmax
+                        iou_2d, i_ratios, a_ratios = context[i].iou_2d(context[j])
+                        i_target_ratio, i_anchor_ratio = i_ratios
+                        target_anchor_area_ratio, anchor_target_area_ratio = a_ratios
+                        # Above, Below 
+                        if target_bottom_anchor_top_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
+                            res['edge_attr'][i][j] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['edge_attr'][j][i] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['tb_attr'][i, 1] -= 1
+                            res['tb_attr'][j, 0] = 0
+                        elif target_top_anchor_bottom_dist > 0.06 and max(i_anchor_ratio, i_target_ratio) > 0.2:
+                            res['edge_attr'][i][j] += torch.tensor([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['edge_attr'][j][i] += torch.tensor([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                            res['tb_attr'][i, 0] = 0
+                            res['tb_attr'][j, 1] -= 1
+                        # supported, support
+                        if i_target_ratio > 0.2 and abs(target_bottom_anchor_top_dist) <= 0.15 and target_anchor_area_ratio < 1.5:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+                            res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                        if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
+                            res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+                            res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+            if not self.args.use_GT:
+                if res['tb_attr'][i, 1] != 1:
+                    res['tb_attr'][i, 1] = 0
+                if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
+                    res['tb_attr'][i, 0] = 0
+                    res['tb_attr'][i, 1] = 0
 
 
 
