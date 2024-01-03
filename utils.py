@@ -722,12 +722,12 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
     if obj_cls_path is not None: 
         # object_class_pth =  dict()
         for k, v in obj_pre['model'].items():
-            if "scene_graph.single_object_encoder" in k:
+            if "scene_graph.single_object_encoder" in k and 'single_object_encoder_for_relation' not in k:
                 _k = k.replace("scene_graph.single_object_encoder", "object_encoder")
                 nsm[_k] = v
             if "scene_graph.object_mlp" in k:
-                if '8' in k:
-                    continue
+                # if '8' in k:
+                #     continue
                 _k = k.replace("scene_graph.object_mlp", "object_clf")
                 nsm[_k] = v
 

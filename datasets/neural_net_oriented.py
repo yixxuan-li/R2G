@@ -57,7 +57,8 @@ def load_referential_data(args, referit_csv, scans_split):
               'mention to the target class {}->{}'.format(n_original, len(referit_data)))
         
     # discard between samples
-    if "sr3d" in referit_csv:
+        
+    if "sr3d" in referit_csv and not args.with_between:
         n_original = len(referit_data)
         referit_data = referit_data[referit_data['reference_type'] != 'between']
         referit_data.reset_index(drop=True, inplace=True)

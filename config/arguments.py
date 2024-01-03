@@ -66,11 +66,12 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--init-lr', type=float, default=0.0005, help='learning rate for training.')
     parser.add_argument('--patience', type=int, default=70, help='if test-acc does not improve for patience consecutive'
                                                                  'epoch, stop training.')
+    parser.add_argument('--with_between', type = str2bool, default = False, help='Include the between in the dataset')
 
     #
     # Model arguments
     #
-    parser.add_argument('--object-encoder', type=str, default='pnet_pp', choices=['pnet_pp', 'pnet', 'pointnext'])
+    parser.add_argument('--object-encoder', type = str, default='pnet_pp', choices=['pnet_pp', 'pnet', 'pointnext'])
     parser.add_argument('--relation_pred', type = str2bool, default = False, help='True to use relation_pred module')
     parser.add_argument('--relation_retrieval', type = str2bool, default = False, help='True to use relation_retrieval module')
     parser.add_argument('--relation_fromfile', type = str2bool, default = False, help='True to use calculated relation')
@@ -94,6 +95,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--use-GT', type=str2bool, default = True, help='True to use GT')
     parser.add_argument('--implicity-instruction', type=str2bool, default = False, help='True to use GT')
     parser.add_argument('--use_LLM', type=str2bool, default = False, help = 'True to use LLM to process the language')
+    parser.add_argument('--edge_o', type=str2bool, default = False, help = 'True to use LLM to process the language')
     #
     # Misc arguments
     #

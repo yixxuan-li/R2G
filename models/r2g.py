@@ -61,7 +61,8 @@ class R2G(nn.Module):
                  relation_clf = None,
                  concept_vocab_seg = None,
                  num_node_properties = None,
-                 concept_vocab_set = None):
+                 concept_vocab_set = None,
+                 relation_vocab = None):
         """
         Parameters have same meaning as in Base3DListener.
 
@@ -84,6 +85,7 @@ class R2G(nn.Module):
         self.num_property = len(property_tokenid)
         self.concept_vocab_seg = concept_vocab_seg
         self.concept_vocab_set = concept_vocab_set
+        self.relation_vocab = relation_vocab
 
         # Encoders
         self.object_encoder = object_encoder
@@ -114,6 +116,11 @@ class R2G(nn.Module):
         elif 'nr3d' in args.referit3D_file:
             self.mode = 'nr3d'
 
+        if args.with_between:
+            relation_dim = 11
+        else:
+            relation_dim = 10
+
         # ## NSM 
         if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
             if args.relation_cls_alpha == 0:
@@ -129,7 +136,8 @@ class R2G(nn.Module):
                             description_hidden_size = 256,
                             target_clf = target_clf,
                             relation_clf = relation_clf,
-                            anchor_clf = anchor_clf
+                            anchor_clf = anchor_clf,
+                            relation_dim = relation_dim
                             )
         else:
             self.nsm = NSM( 
@@ -137,7 +145,8 @@ class R2G(nn.Module):
                             input_size = args.word_embedding_dim, 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
-                            description_hidden_size = 256
+                            description_hidden_size = 256,
+                            relation_dim = relation_dim
                             )
 
 
@@ -230,7 +239,8 @@ class R2G(nn.Module):
 
         ## Construct edge representation
         # Get the relation vocab
-        relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
+        # relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
+        relation_vocab = self.relation_vocab
         edge_prob = edge_prob_logits = None
         # B x N x N x prob_softmax   * probmax x embedding     ->     B X N X N X onehot_dim -> B X N X N X embedding, (B * n * n * 300)
         if self.args.relation_pred:
@@ -275,7 +285,7 @@ class R2G(nn.Module):
             # result['rela_sum'] = rela_sum
         # print(batch['target_pos'])
         # pdb.set_trace()
-        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
+        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask, relation_vocab = relation_vocab)
         
         ## for debug
         result['obj_prob'] = prob
@@ -317,7 +327,10 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
 
     # Tokenizer the properties and concept token
     color_semantic = ['white', 'blue', 'brown', 'black', 'red', 'green', 'grey', 'yellow', 'purple', 'sliver', 'gold', 'pink', 'orange']
-    relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right']
+    if args.with_between:
+        relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right', 'between']
+    else:
+        relation_semantic = ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'left', 'right']
     if args.model_attr:
         if args.multi_attr:
             # Tokenizer the attribute
@@ -354,6 +367,12 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
     relation_semantic_token = vocab.encode(relation_semantic, add_begin_end = False)[0]   # 11 relation-semantic-label
     property_tokenid = vocab.encode(property_semantic, add_begin_end = False)[0]
     concept_vocab_set = vocab.encode(concept_vocab_set, add_begin_end = False)[0]
+    relation_onehot = torch.tensor([10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    if args.with_between:
+        relation_onehot = torch.tensor([10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    else:
+        relation_onehot = torch.tensor([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    onehot_relation_semantic_token = F.one_hot(relation_onehot).float().cuda()
 
 
     if args.model_attr:
@@ -375,7 +394,13 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
                                     len(object_semantic_filtertoken) + len(color_semantic_token), \
                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token),\
-                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]    
+                                                len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]  
+    elif True:
+        concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token
+        concept_vocab_seg = [len(object_semantic_filtertoken), \
+                                len(object_semantic_filtertoken) + len(color_semantic_token), \
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)]   
+        relation_vocab = onehot_relation_semantic_token
     else:
         concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_token
         concept_vocab_seg = [len(object_semantic_filtertoken), \
@@ -420,7 +445,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         
     relation_clf = None
     if args.relation_cls_alpha > 0 and not args.implicity_instruction:
-        relation_clf = text_decoder_for_clf(args.word_embedding_dim, 10)
+        relation_clf = text_decoder_for_clf(args.word_embedding_dim, len(relation_semantic))
     
 
 
@@ -442,6 +467,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         relation_num = len(relation_semantic),
         relation_clf = relation_clf,
         concept_vocab_seg = concept_vocab_seg,
-        num_node_properties = len(property_semantic) -1)
+        num_node_properties = len(property_semantic) -1,
+        relation_vocab = relation_vocab)
 
     return model

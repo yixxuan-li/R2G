@@ -6,7 +6,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np
 from einops import rearrange, repeat
 from .utils import get_siamese_features
-
+import pdb
 
 
 
@@ -98,6 +98,7 @@ class NSMCell(nn.Module):
         input_size: int,
         n_node_properties: int,
         n_ins: int,
+        relation_dim: int,
         dropout: float = 0.0
     ) -> None:
         super(NSMCell, self).__init__()
@@ -106,12 +107,13 @@ class NSMCell(nn.Module):
         self.weight_node_properties = nn.Parameter(
             torch.tensor(np.vstack([np.eye(input_size).reshape(1, input_size, input_size) for i in range(n_node_properties)]) ).to(torch.float32), requires_grad = True
         )
-        self.weight_edge = nn.Parameter(torch.eye(input_size), requires_grad = True)
+        self.weight_edge = nn.Parameter(torch.eye(relation_dim), requires_grad = True)
         self.weight_state_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
-        self.weight_relation_score = nn.Parameter(torch.ones(input_size), requires_grad = True)
+        self.weight_relation_score = nn.Parameter(torch.ones(relation_dim), requires_grad = True)
         self.dropout = nn.Dropout(p=dropout)
 
         self.n_ins = n_ins
+        self.relation_dim = relation_dim
 
 
     def forward(
@@ -147,44 +149,45 @@ class NSMCell(nn.Module):
         #  which stand for the node and edge's relative of instruction
         # B x N x H
         # if (self.n_ins == 3 and ins_id != 1) or (self.n_ins == 21 and ins_id != 10):
-        node_scores = self.dropout(
-            self.nonlinearity(
-                torch.sum(
-                        F.normalize(
-                            torch.mul(
-                                repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
-                                torch.matmul(
-                                    torch.mul(
-                                        repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
-                                        rearrange(node_attr, 'b n p h -> b p n h')
-                                        ),
-                                    repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
-                                )
-                            )
-                        ),
-                    dim=1,
-                )# B x P x N x H -> B x N x H 
-            )
-        )
-
-
-        # if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
-        edge_scores = self.dropout(
-            self.nonlinearity(
-                            rearrange(
-                                F.normalize(
+        if ins_id != 1:
+            node_scores = self.dropout(
+                self.nonlinearity(
+                    torch.sum(
+                            F.normalize(
+                                torch.mul(
+                                    repeat(node_prop_similarities, 'b p -> b p n h', n = num_node, h = dim),
                                     torch.matmul(
                                         torch.mul(
-                                            repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
-                                            rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
-                                        ),
-                                        repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
+                                            repeat(instruction, 'b h -> b p n h', p = num_node_properties, n = num_node),
+                                            rearrange(node_attr, 'b n p h -> b p n h')
+                                            ),
+                                        repeat(self.weight_node_properties, 'p h1 h2 -> b p h1 h2', b = batch_size)
                                     )
-                                ), 
-                                'b (n1 n2) h -> b n1 n2 h', n1 = num_node
-                            )
-            )# B x N x N x H
-        )
+                                )
+                            ),
+                        dim=1,
+                    )# B x P x N x H -> B x N x H 
+                )
+            )
+
+        if ins_id == 1:
+            # if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 21 and ins_id == 10):
+            edge_scores = self.dropout(
+                self.nonlinearity(
+                                rearrange(
+                                    F.normalize(
+                                        torch.matmul(
+                                            torch.mul(
+                                                repeat(instruction, 'b h -> b nn h', nn = num_node*num_node),
+                                                rearrange(edge_attr, 'b n1 n2 h -> b (n1 n2) h')
+                                            ),
+                                            repeat(self.weight_edge, 'h1 h2 -> b h1 h2', b = batch_size)
+                                        )
+                                    ), 
+                                    'b (n1 n2) h -> b n1 n2 h', n1 = num_node
+                                )
+                )# B x N x N x H
+            )
 
             
         # shift the attention to their most relavant neibors; B x N x H -> B x N
@@ -217,8 +220,8 @@ class NSMCell(nn.Module):
         if (self.n_ins == 3 and ins_id == 1) or (self.n_ins == 19 and ins_id == 9):
             next_distribution_relations = F.softmax(
                 (torch.sum(
-                        edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
-                    ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
+                        edge_scores * distribution.view(batch_size, 1, -1, 1).expand(batch_size, num_node, num_node, self.relation_dim), dim = 2# (B x N x N x H) * (B x 1 x N x 1)
+                    ).squeeze(2)  @ self.weight_relation_score.view(1, -1,1).expand(batch_size, self.relation_dim, 1)                      # B x N x 1 x H -> B x N x H   @ H
                 ).squeeze(2) + node_mask,# B x N
                 dim = 1 
             )
@@ -299,10 +302,11 @@ class NSM(nn.Module):
                  num_instructions: int, 
                  description_hidden_size: int, 
                  dropout: float = 0.0,
+                 relation_dim = int,
+                 vocab_len = int,
                  anchor_clf = None,
                  relation_clf = None,
-                 target_clf = None,
-                 vocab_len = None
+                 target_clf = None
                  ):
         super(NSM, self).__init__()
         if not args.use_LLM:
@@ -314,7 +318,7 @@ class NSM(nn.Module):
             self.target_clf = target_clf    
 
         self.num_instructions = num_instructions
-        self.nsm_cell = NSMCell(input_size, num_node_properties, n_ins = num_instructions, dropout=dropout)  
+        self.nsm_cell = NSMCell(input_size, num_node_properties, n_ins = num_instructions, relation_dim = relation_dim, dropout=dropout)  
         self.dropout = nn.Dropout(dropout)  
         
     def forward(
@@ -334,7 +338,7 @@ class NSM(nn.Module):
         language_len = None,
         concept_vocab_set = None,
         instructions = None,
-        instructions_mask = None
+        instructions_mask = None,
     ):
         """
         Dimensions:
@@ -380,7 +384,7 @@ class NSM(nn.Module):
 
             if self.relation_clf is not None:
                 lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
-                relation_instruction = torch.matmul(lang_relation_logits, concept_vocab[concept_vocab_seg[-2]:])
+                relation_instruction = torch.matmul(lang_relation_logits, relation_vocab)
                 
             if self.target_clf is not None:
                 if self.num_instructions == 3:

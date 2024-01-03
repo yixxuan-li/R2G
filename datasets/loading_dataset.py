@@ -273,9 +273,33 @@ class ListeningDataset(Dataset):
     def __getitem__(self, index):
         res = dict()
         scan, target, tokens, tokens_len, is_nr3d, lang_mask, tokens_filterd, tokens_filterd_mask, anchor, sr_type, target_id, anchor_id, instruction_tokens, instructions_mask, scan_relation, flag = self.get_reference_data(index)
+        
         # Make a context of distractors
         context, context_ind_of_scan = self.prepare_distractors(scan, target, anchor)
         # print(scan.relation_matrix)
+
+        # model spatial relations in sr3d
+        relation = {
+            'above': 0, 
+            'below': 1, 
+            'front': 2, 
+            'back': 3, 
+            'farthest': 4, 
+            'closest': 5, 
+            'supporting': 6, 
+            'supported-by': 7, 
+            'left': 8,
+            'right': 9
+            }
+        if self.args.with_between:
+            relation['between'] = 10
+
+        if sr_type is not None:
+            ## get the spatial relation type
+            if sr_type in relation.keys():
+                sr = relation[sr_type]
+            
+            res['sr_type'] = sr
 
 
         # Add anchor object in 'context' list
@@ -315,10 +339,10 @@ class ListeningDataset(Dataset):
         # take care of padding, so that a batch has same number of N-objects across scans.
         res['objects'] = pad_samples(samples, self.max_context_size)
         
-        res['object_mask'] = torch.zeros(self.max_context_size)
+        res['object_mask'] = torch.tensor(np.zeros(self.max_context_size, dtype=np.float32))
         res['object_mask'][len(context):] = torch.tensor(-np.inf)
-        res['object_diag_mask'] = torch.ones((self.max_context_size, self.max_context_size))
-        diag = torch.eye(len(context))
+        res['object_diag_mask'] = torch.tensor(np.ones((self.max_context_size, self.max_context_size), dtype=np.float32))
+        diag = torch.tensor(np.eye(len(context), dtype=np.float32))
         res['object_diag_mask'][:len(context), :len(context)] = res['object_diag_mask'][:len(context), :len(context)] - diag
 
         # get the explicity node feature and padding it
@@ -343,7 +367,7 @@ class ListeningDataset(Dataset):
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
-        if self.args.relation_fromfile is not None:
+        if self.args.relation_fromfile:
             context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
             relation_matrix = scan_relation['rela_dis'][0][context_ind_of_scan, :, :]
             relation_matrix = relation_matrix[:, context_ind_of_scan, :]
@@ -351,9 +375,9 @@ class ListeningDataset(Dataset):
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
         res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
-        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
-        if self.args.relation_fromfile is not None:
-            res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
+        res['edge_attr'] = torch.tensor(np.zeros((self.max_context_size, self.max_context_size, len(relation)), dtype=np.float32))
+        if self.args.relation_fromfile:
+            res['edge_attr'][:res['context_size'], :res['context_size'], :len(relation)] = torch.tensor(relation_matrix)
 
         # for debug
         # if flag:
@@ -408,7 +432,7 @@ class ListeningDataset(Dataset):
             for j in range(0, len(context)):
                 if i == j:
                     continue
-                if not self.args.use_GT:
+                if not self.args.relation_fromfile:
                     if context[j].has_front_direction:
                         allo_relation = get_allocentric_relation(context[j], context[i]) 
                         if allo_relation == 0:
@@ -437,7 +461,7 @@ class ListeningDataset(Dataset):
                     #         elif res['edge_vector'][i][j][2] < 0:
                     #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                     #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-                    if not self.args.use_GT:
+                    if not self.args.relation_fromfile:
                         # above below
                         target_extrema = context[i].get_axis_align_bbox().extrema
                         target_zmin = target_extrema[2]
@@ -468,34 +492,13 @@ class ListeningDataset(Dataset):
                         if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
                             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-            if not self.args.use_GT:
+            if not self.args.relation_fromfile:
                 if res['tb_attr'][i, 1] != 1:
                     res['tb_attr'][i, 1] = 0
                 if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
                     res['tb_attr'][i, 0] = 0
                     res['tb_attr'][i, 1] = 0
 
-
-
-        # model spatial relations in sr3d
-        if sr_type is not None:
-            ## get the spatial relation type
-            relation = {
-                'above': 0, 
-                'below': 1, 
-                'front': 2, 
-                'back': 3, 
-                'farthest': 4, 
-                'closest': 5, 
-                'supporting': 6, 
-                'supported-by': 7, 
-                'left': 8,
-                'right': 9
-                }
-            if sr_type in relation.keys():
-                sr = relation[sr_type]
-            
-            res['sr_type'] = sr
 
         res['lang_mask'] = torch.Tensor(lang_mask)
         res['tokens_len'] = tokens_len
