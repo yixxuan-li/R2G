@@ -205,8 +205,8 @@ if __name__ == '__main__':
             print('Parameters that do not allow gradients to be back-propped:')
             ft_everything = False
             for name, param in model.named_parameters():
-                if "object" in name:
-                    param.requires_grad = False
+                # if "object" in name:
+                #     param.requires_grad = False
                 if not param.requires_grad:
                     print(name)
                     exist = False

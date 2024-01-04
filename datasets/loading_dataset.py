@@ -377,7 +377,7 @@ class ListeningDataset(Dataset):
         res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
         res['edge_attr'] = torch.tensor(np.zeros((self.max_context_size, self.max_context_size, len(relation)), dtype=np.float32))
         if self.args.relation_fromfile:
-            res['edge_attr'][:res['context_size'], :res['context_size'], :len(relation)] = torch.tensor(relation_matrix)
+            res['edge_attr'][:res['context_size'], :res['context_size'], :10] = torch.tensor(relation_matrix)
 
         # for debug
         # if flag:
