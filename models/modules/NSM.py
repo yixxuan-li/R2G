@@ -225,8 +225,7 @@ class NSMCell(nn.Module):
                 ).squeeze(2) + node_mask,# B x N
                 dim = 1 
             )
-            
-            
+            pdb.set_trace()
         # Compute next distribution
         # B x N
         # next_distribution = F.softmax(
@@ -380,19 +379,19 @@ class NSM(nn.Module):
             ## constrain the 3 instructions
             if self.anchor_clf is not None:
                 anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-                anchor_instruction = torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]])
+                anchor_instruction = torch.matmul(F.softmax(anchor_logits, dim = -1), concept_vocab[:concept_vocab_seg[0]])
 
             if self.relation_clf is not None:
                 lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
-                relation_instruction = torch.matmul(lang_relation_logits, relation_vocab)
+                relation_instruction = torch.matmul(F.softmax(lang_relation_logits, dim = -1), relation_vocab)
                 
             if self.target_clf is not None:
                 if self.num_instructions == 3:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+                    target_instruction = torch.matmul(F.softmax(target_logits, dim = -1), concept_vocab[:concept_vocab_seg[0]])
                 elif self.num_instructions == 19:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[10])
-                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+                    target_instruction = torch.matmul(F.softmax(target_logits, dim = -1), concept_vocab[:concept_vocab_seg[0]])
 
         # Apply dropout to state and edge representations
         # node_attr=self.dropout(node_attr)

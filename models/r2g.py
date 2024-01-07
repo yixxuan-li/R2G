@@ -284,7 +284,7 @@ class R2G(nn.Module):
             # result['rela_dis'] = rela_dis
             # result['rela_sum'] = rela_sum
         # print(batch['target_pos'])
-        # pdb.set_trace()
+        pdb.set_trace()
         final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask, relation_vocab = relation_vocab)
         
         ## for debug
