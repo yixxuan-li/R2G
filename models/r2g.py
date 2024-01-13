@@ -130,7 +130,7 @@ class R2G(nn.Module):
             if args.anchor_cls_alpha == 0:
                 anchor_clf = None
             self.nsm = NSM( args,
-                            input_size = args.word_embedding_dim, 
+                            input_size = concept_vocab.shape[-1], 
                             num_node_properties = num_node_properties, 
                             num_instructions = 3, 
                             description_hidden_size = 256,
@@ -172,7 +172,8 @@ class R2G(nn.Module):
         # Embedder the language, property and vocab
         language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding      
         property_embedding =  self.token_embed(torch.LongTensor(self.property_embedding).cuda()).float()
-        concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
+        # concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
+        concept_vocab = self.concept_vocab
         
         instructions = None
         instructions_mask = None
@@ -192,13 +193,13 @@ class R2G(nn.Module):
         # Construct node representation 
         batch_size, num_objects, _ = object_class_prob.shape
         # Identity information 
-        object_identity_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[:self.concept_vocab_seg[0]], 'c h -> b c h', b = batch_size))
+        object_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab, 'c h -> b c h', b = batch_size))
         # Function information
-        if not self.args.multi_attr:
-            function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
-        object_semantic_prob = torch.mul(0.5, object_identity_semantic_prob) + torch.mul(0.5, function_semantic_prob)
+        # if not self.args.multi_attr:
+        #     function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
+        # object_semantic_prob = torch.mul(0.5, object_identity_semantic_prob) + torch.mul(0.5, function_semantic_prob)
         # Color information
-        color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
+        # color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
         if self.args.model_attr:
             if self.args.multi_attr:
                 ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
@@ -376,6 +377,9 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         relation_onehot = torch.tensor([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
     onehot_relation_semantic_token = F.one_hot(relation_onehot).float().cuda()
 
+    identity_onehot = torch.tensor(range(len(object_class))) 
+    identity_onehot_embedding = F.one_hot(identity_onehot).float().cuda()
+
 
     if args.model_attr:
         if args.multi_attr:
@@ -397,11 +401,12 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token),\
                                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]  
-    elif False:
-        concept_vocab = object_semantic_filtertoken
+    elif True:
+        # concept_vocab = object_semantic_filtertoken
+        concept_vocab = identity_onehot_embedding
         concept_vocab_seg = [len(object_semantic_filtertoken)]   
         relation_vocab = onehot_relation_semantic_token
-    elif True:
+    elif False:
         concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token
         concept_vocab_seg = [len(object_semantic_filtertoken), \
                                 len(object_semantic_filtertoken) + len(color_semantic_token), \

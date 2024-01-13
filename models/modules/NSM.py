@@ -80,15 +80,15 @@ class InstructionsModel(nn.Module):
         vocab: C x H, C: sum of conceptions of all properties
         description: B x l x H
         """
-        tagged_description = self.tagger(vocab, description) # B * l * embedding_size
-        _, (encoded, _) = self.encoder(rearrange(tagged_description, 'b l h -> l b h'))  # get last hidden
+        # tagged_description = self.tagger(vocab, description) # B * l * embedding_size
+        _, (encoded, _) = self.encoder(rearrange(description, 'b l h -> l b h'))  # get last hidden
         # B x LSTM-encoder-hidden-size
         encoded = rearrange(encoded, '1 b h -> b h')
         # instruction_length x B x LSTM-encoder-hidden-size
         hidden, _ = self.decoder(repeat(encoded, 'b h -> n b h', n = self.n_instructions))
         hidden = rearrange(hidden, 'n b h -> b n h') # B x instruction_length x embedding_size
-        attention = self.softmax(torch.matmul(hidden, rearrange(tagged_description, 'b l h -> b h l')))   #B x instruction_length x l
-        instructions = torch.matmul(attention, tagged_description)    # B x instruction_length x embedding_size
+        attention = self.softmax(torch.matmul(hidden, rearrange(description, 'b l h -> b h l')))   #B x instruction_length x l
+        instructions = torch.matmul(attention, description)    # B x instruction_length x embedding_size
         return instructions, encoded
 
 
@@ -311,7 +311,7 @@ class NSM(nn.Module):
         super(NSM, self).__init__()
         if not args.use_LLM:
             self.instructions_model = InstructionsModel(
-                input_size, num_instructions, description_hidden_size, dropout=dropout
+                300, num_instructions, description_hidden_size, dropout=dropout
             )#300, 5+1, 16
             self.anchor_clf = anchor_clf
             self.relation_clf = relation_clf
@@ -380,8 +380,7 @@ class NSM(nn.Module):
             ## constrain the 3 instructions
             if self.anchor_clf is not None:
                 anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-                anchor_instruction = torch.mul(torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]]), 0.5) +\
-                                        torch.mul(torch.matmul(anchor_logits, concept_vocab[concept_vocab_seg[1]:]), 0.5)
+                anchor_instruction = torch.matmul(anchor_logits, concept_vocab)
  
             if self.relation_clf is not None:
                 lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
@@ -390,8 +389,7 @@ class NSM(nn.Module):
             if self.target_clf is not None:
                 if self.num_instructions == 3:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-                    target_instruction = torch.mul(torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]]), 0.5) +\
-                                            torch.mul(torch.matmul(target_logits, concept_vocab[concept_vocab_seg[1]:]), 0.5)
+                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
                 elif self.num_instructions == 19:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[10])
                     target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
