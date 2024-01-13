@@ -308,6 +308,7 @@ class ListeningDataset(Dataset):
             anchor_pos = np.random.randint(len(context) + 1)
             context.insert(anchor_pos, anchor)
             context_ind_of_scan.insert(anchor_pos, anchor_id)
+            res['anchor_pos'] = anchor_pos
 
         # Add target object in 'context' list
         target_pos = np.random.randint(len(context) + 1)

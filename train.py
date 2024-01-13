@@ -279,15 +279,15 @@ if __name__ == '__main__':
         logger.info('Finished training successfully. Good job!')
 
     elif args.mode == 'evaluate':
-        meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
-        print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
-        print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
-        exit()
+        # meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
+        # print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
+        # print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
+        # exit()
 
-        out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
-        res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
-                                 args, out_file=out_file)
-        print(res)
+        # out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
+        # res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
+        #                          args, out_file=out_file)
+        # print(res)
         
 
         def collate_my(batch_data):
@@ -318,13 +318,28 @@ if __name__ == '__main__':
         d_loader = dataset_to_dataloader(data_loaders['test'].dataset, 'test', args.batch_size, n_workers=5, seed=2020)
         assert d_loader.dataset.references is references
         vis_res = save_predictions_for_visualization(model, d_loader, device, channel_last=True, seed=2020)
-        
+        anchor_right = 0
+        pred_right = 0
         print("get the scenes for visualization")
-        for i_index in range(len(vis_res)): ##i_index: per utturance index
-            # if vis_res[i_index]['utterance'] == "the cabinets that are far away from the recycling bin":
-            #     print(i_index)
-            #     print("____________")
 
+        for i_index in range(len(vis_res)): ##i_index: per utturance index
+            obj_class = vis_res[i_index]['class_label']
+            obj_pred_index = np.argsort(vis_res[i_index]['obj_prob'], axis = -1)
+        #     # if vis_res[i_index]['utterance'] == "the cabinets that are far away from the recycling bin":
+        #     #     print(i_index)
+        #     #     print("____________")
+            prob = vis_res[i_index]['prob']
+        #     if prob[1, vis_res[i_index]['anchor_pos']] > 0.9:
+        #         anchor_right = anchor_right + 1
+        #     if obj_class[vis_res[i_index]['anchor_pos']] ==  obj_pred_index[vis_res[i_index]['anchor_pos']][-1]:
+        #         pred_right = pred_right + 1
+        #     continue
+        # print("**************")
+        # print(anchor_right / len(vis_res), '\n', len(vis_res), '\n', pred_right / len(vis_res))
+
+        # print("**************")
+            if not (prob[1, vis_res[i_index]['anchor_pos']] < 0.9 and obj_class[vis_res[i_index]['anchor_pos']] ==  obj_pred_index[vis_res[i_index]['anchor_pos']][-1]):
+                continue
             obj_class = vis_res[i_index]['class_label']
             out = {}
             # get scan
@@ -397,11 +412,11 @@ if __name__ == '__main__':
                 # attention['id:' + str(i) + ' gt:' + id_to_class[obj_class[i]] + ' pred:' +  id_to_class[obj_predclass[i]]] = prob[:,i].tolist()
                 
 
-                for i in range(3):
+                for j in range(3):
                     pred_class = {
-                                    id_to_class[obj_pred_index[i][-1]]: (obj_pred_index[i][-1]).tolist(),
-                                    id_to_class[obj_pred_index[i][-2]]: (obj_pred_index[i][-2]).tolist(),
-                                    id_to_class[obj_pred_index[i][-3]]: (obj_pred_index[i][-3]).tolist(),
+                                    id_to_class[obj_pred_index[j][-1]]: (obj_pred_index[j][-1]).tolist(),
+                                    id_to_class[obj_pred_index[j][-2]]: (obj_pred_index[j][-2]).tolist(),
+                                    id_to_class[obj_pred_index[j][-3]]: (obj_pred_index[j][-3]).tolist(),
                                     }
                 
                 object_info['pred_class'] = pred_class

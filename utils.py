@@ -180,7 +180,7 @@ def create_logger(log_dir, std_out=True):
 
 def make_batch_keys(args, extras=None):
     """depending on the args, different data are used by the listener."""
-    batch_keys = ['objects', 'tokens', 'target_pos', 'color_onehot', 'mc_attr', 'tb_attr']  # all models use these
+    batch_keys = ['objects', 'tokens', 'target_pos', 'color_onehot', 'mc_attr', 'tb_attr', 'object_mask']  # all models use these
     # batch_keys = ['objects', 'tokens', 'target_pos', 'lang_mask', 'color_feature', 'size_feature', 'position_features', 'color_token', 'object_mask']  # cause segmentation fault 
     
     if args.use_LLM:
@@ -617,14 +617,15 @@ def save_predictions_for_visualization(model, data_loader, device, channel_last,
                 # "tar_anc_sr": res['tar_anc_sr'][i].cpu().numpy(),
                 "sr_type": batch['sr_type'][i].cpu().numpy(),
                 'target_class': batch['target_class'][i].cpu().numpy(),
+                'anchor_pos': batch['anchor_pos'][i].numpy(),
                 # "pred_sr": res['relation_logits'][i],
                 'anchor_class': batch['anchor_class'][i].cpu().numpy()
                 # 'edge_prob': res['edge_prob_logits'][i].cpu().numpy()
                 #'is_easy': batch['is_easy'][i]
                 }
             )
-        if ind ==0:
-            break 
+        # if ind ==1:
+        #     break 
 
     return res_list
 
@@ -726,8 +727,8 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
                 _k = k.replace("scene_graph.single_object_encoder", "object_encoder")
                 nsm[_k] = v
             if "scene_graph.object_mlp" in k:
-                # if '8' in k:
-                #     continue
+                if '8' in k:
+                    continue
                 _k = k.replace("scene_graph.object_mlp", "object_clf")
                 nsm[_k] = v
 

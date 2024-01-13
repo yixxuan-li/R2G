@@ -72,7 +72,6 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         # -------------------------------------------------------------
         
         # -------------------------- c++ ------------------------------
-
         origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
         # -------------------------------------------------------------
                     

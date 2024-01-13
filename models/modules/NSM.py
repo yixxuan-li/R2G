@@ -380,8 +380,9 @@ class NSM(nn.Module):
             ## constrain the 3 instructions
             if self.anchor_clf is not None:
                 anchor_logits = self.anchor_clf(instructions[:, :].unbind(1)[0])
-                anchor_instruction = torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]])
-
+                anchor_instruction = torch.mul(torch.matmul(anchor_logits, concept_vocab[:concept_vocab_seg[0]]), 0.5) +\
+                                        torch.mul(torch.matmul(anchor_logits, concept_vocab[concept_vocab_seg[1]:]), 0.5)
+ 
             if self.relation_clf is not None:
                 lang_relation_logits = self.relation_clf(instructions[:, :].unbind(1)[1])# B x n_relation
                 relation_instruction = torch.matmul(lang_relation_logits, relation_vocab)
@@ -389,7 +390,8 @@ class NSM(nn.Module):
             if self.target_clf is not None:
                 if self.num_instructions == 3:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[2])
-                    target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
+                    target_instruction = torch.mul(torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]]), 0.5) +\
+                                            torch.mul(torch.matmul(target_logits, concept_vocab[concept_vocab_seg[1]:]), 0.5)
                 elif self.num_instructions == 19:
                     target_logits = self.target_clf(instructions[:, :].unbind(1)[10])
                     target_instruction = torch.matmul(target_logits, concept_vocab[:concept_vocab_seg[0]])
