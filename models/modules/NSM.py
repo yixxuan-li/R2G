@@ -421,7 +421,7 @@ class NSM(nn.Module):
                         instruction_prop[:, -1] = 1
                     else:
                         instruction_prop[:, :-1] = 1
-                        # instruction_prop[:, 1] = 0
+                        instruction_prop[:, 1] = 0
                 elif self.num_instructions == 19:
                     if ins_id == 9:
                         instruction_prop[:, -1] = 1
