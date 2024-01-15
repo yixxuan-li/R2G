@@ -171,7 +171,7 @@ py::array_t<double> get_relation_topn(
     int num_object = origin_relation.shape()[1];// objects number in a scene
 
     // prepare out relation
-    py::array_t<int> out = py::array_t<int>(origin_relation.size());
+    py::array_t<float> out = py::array_t<float>(origin_relation.size());
     out.resize({origin_relation.shape()[0], origin_relation.shape()[1], origin_relation.shape()[2], origin_relation.shape()[3]});
     auto out_relation = out.mutable_unchecked<4>();
 
@@ -220,6 +220,7 @@ py::array_t<double> get_relation_topn(
             // 
         }
         //
+        // int flag = 0;
         for (int tar_obj = 0; tar_obj < context(i_bsz) * n; tar_obj++)
         {
             double tar_class = object_class(i_bsz, tar_obj);//get target object class
@@ -230,61 +231,87 @@ py::array_t<double> get_relation_topn(
                 {
                     continue;
                 }
-                vector<double> class_obj_index = class_key->second;//get object set belonging to target class
+                // if(tar_class == 415 && class_key->first == 585)
+                // {
+                //     flag = 1;
+                //     py::print(585);
+                // }
+                // if(tar_class == 415 && class_key->first == 189)
+                // {
+                //     flag = 1;
+                //     py::print(189);
+                // }
+                // if(tar_class == 415 && class_key->first == 73)
+                // {
+                //     flag = 1;
+                //     py::print(73);
+                // }
+                vector<double> raw_class_obj_index = class_key->second;//get object set belonging to target class
+                vector<double> class_obj_index;
+                for(int i = 0; i < raw_class_obj_index.size(); i++)
+                {
+                    if(int(raw_class_obj_index[i]/n) != (int)(tar_obj/n))
+                    {
+                        class_obj_index.push_back(raw_class_obj_index[i]);
+                    }
+                }
                 int class_obj_num = class_obj_index.size();// numebr of object having the same label
                 for(int _class_obj_num = 1; _class_obj_num <= class_obj_num; _class_obj_num++)
                 {
                     // get index combinations of one class set in same size; 
                     auto combine_set = combine(class_obj_index, _class_obj_num);
-                    double prob = 1;
                     for(int com_iter = 0; com_iter < combine_set.size(); com_iter++)
                     {
+                        double prob = 1;
                         vector<double> _combine = combine_set[com_iter];// the index combinate of one class object
                         double farthest_obj = _combine[0];
                         double closet_obj = _combine[0];
-                        for(int iter = 0; iter <= class_obj_num; iter++)//tranverse the whole set of a class
+                        for(int iter = 0; iter < class_obj_num; iter++)//tranverse the whole set of a class
                         {   
                             double temp_index = class_obj_index[iter];
+                            // if(flag == 1)
+                            // {
+                            //     py::print(temp_index);
+                            // }
                             if(find(_combine.begin(), _combine.end(), temp_index) != _combine.end())
                             {
                                 prob *= object_prob(i_bsz, temp_index);
-                                if (distance(i_bsz, tar_obj/n, temp_index) > distance(i_bsz, tar_obj, farthest_obj))
+                                if (distance(i_bsz, (int)(tar_obj/n), temp_index) > distance(i_bsz, tar_obj, farthest_obj))
                                 {
                                     farthest_obj = temp_index;
                                 }
 
-                                if (distance(i_bsz, tar_obj/n, temp_index) < distance(i_bsz, tar_obj, closet_obj))
+                                if (distance(i_bsz, (int)(tar_obj/n), temp_index) < distance(i_bsz, tar_obj, closet_obj))
                                 {
                                     closet_obj = temp_index;
                                 }
-
                             }
                             else
                             {
                                 prob *= (1 - object_prob(i_bsz, temp_index));
                             }
                         }
-                        // vector<double> _combine = combine_set[com_iter];
-                        // for (int _class_obj_index = 0; _class_obj_index < class_obj_num; _class_obj_index++)
+                        out_relation(i_bsz, (int)(farthest_obj/n), (int)(tar_obj/n), 4) += prob;
+                        out_relation(i_bsz, (int)(closet_obj/n), (int)(tar_obj/n), 5) += prob;
+                        // if(tar_class == 415 && class_key->first == 585)
                         // {
-                        //     double farthest_obj = _combine[0];
-                        //     double closet_obj = _combine[0];
-                        //     //find the closet and farthest
-                        //     double temp_obj_index = _combine[_class_obj_index];
-                        //     if (distance(i_bsz, tar_obj, temp_obj_index) > distance(i_bsz, tar_obj, farthest_obj))
-                        //     {
-                        //         farthest_obj = temp_obj_index;
-                        //     }
-
-                        //     if (distance(i_bsz, tar_obj, temp_obj_index) < distance(i_bsz, tar_obj, closet_obj))
-                        //     {
-                        //         closet_obj = temp_obj_index;
-                        //     }
+                        //     flag = 1;
+                        //     py::print(585);
+                        //     py::print(out_relation(i_bsz, (int)(farthest_obj/n), (int)(tar_obj/n), 4));
+                        //     py::print(out_relation(i_bsz, (int)(closet_obj/n), (int)(tar_obj/n), 5));
                         // }
-                        out_relation(i_bsz, farthest_obj/n, tar_obj/n, 4) += prob;
-                        out_relation(i_bsz, closet_obj/n, tar_obj/n, 5) += prob;
+                        // if(flag)
+                        // {
+                        //     py::print(farthest_obj/n, tar_obj/n);
+                        //     py::print(closet_obj/n, tar_obj/n);
+                        //     py::print(prob);
+                        //     py::print(out_relation(i_bsz, (int)(farthest_obj/n), (int)(tar_obj/n), 4));
+                        //     py::print(out_relation(i_bsz, (int)(closet_obj/n), (int)(tar_obj/n), 5));
+                        //     py::print("********");
+                        // }
                     }
                 }
+                // flag = 0;
             }
         }
     }

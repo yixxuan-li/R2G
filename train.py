@@ -191,7 +191,7 @@ if __name__ == '__main__':
     best_test_epoch = -1
     no_improvement = 0 
     
-    if args.resume_path:
+    if args.resume_path or args.obj_cls_path:
         warnings.warn('Resuming assumes that the BEST per-val model is loaded!')
         # perhaps best_test_acc, best_test_epoch, best_test_epoch =  unpickle...
         loaded_epoch = load_state_dicts(args.resume_path, obj_cls = args.obj_cls_path, map_location=device, model=model)
@@ -199,9 +199,9 @@ if __name__ == '__main__':
         if not args.fine_tune:
             print('Loaded a model that we do NOT plan to fine-tune.')
             load_state_dicts(args.resume_path, optimizer=optimizer, obj_cls = args.obj_cls_path, lr_scheduler=lr_scheduler)
-            start_training_epoch = loaded_epoch + 1
-            best_test_epoch = loaded_epoch
-            best_test_acc = lr_scheduler.best
+            # start_training_epoch = loaded_epoch + 1
+            # best_test_epoch = loaded_epoch
+            # best_test_acc = lr_scheduler.best
             print('Loaded model had {} test-accuracy in the corresponding dataset used when trained.'.format(
                 best_test_acc))
         else:
@@ -221,8 +221,8 @@ if __name__ == '__main__':
 
     relation_dis = single_epoch_train(model, data_loaders['train'], criteria, optimizer,
                                         device, pad_idx, args=args)
-    print(relation_dis)
-    pickle_data('/data1/liyixuan/data/relation2.pkl', relation_dis)
+    # print(relation_dis)
+    pickle_data('/home/yixuan/data/relation2_v3_p2.pkl', relation_dis)
     
 
     

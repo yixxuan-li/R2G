@@ -226,12 +226,12 @@ class ListeningDataset(Dataset):
 
         distractors.extend(clutter)
         distractors_ind.extend(clutter_ind)
-        if anchor is not None:
-            distractors = distractors[:self.max_distractors-1]
-            distractors_ind = distractors_ind[:self.max_distractors-1]
-        else:
-            distractors = distractors[:self.max_distractors]
-            distractors_ind = distractors_ind[:self.max_distractors]
+        # if anchor is not None:
+        #     distractors = distractors[:self.max_distractors-1]
+        #     distractors_ind = distractors_ind[:self.max_distractors-1]
+        # else:
+        #     distractors = distractors[:self.max_distractors]
+        #     distractors_ind = distractors_ind[:self.max_distractors]
 
         state = np.random.get_state()
         np.random.shuffle(distractors)
@@ -263,12 +263,12 @@ class ListeningDataset(Dataset):
                 anchor_pos += 1
         context.insert(target_pos, target)
         context_ind_of_scan.insert(target_pos, target_id)
-
+        # print(len(context), len(scan.three_d_objects))
         # sample point/color for them
         samples = np.array([sample_scan_object(o, self.points_per_object) for o in context])
 
         # mark their classes
-        res['class_labels'] = instance_labels_of_context(context, self.max_context_size, self.class_to_idx)
+        res['class_labels'] = instance_labels_of_context(context, len(context), self.class_to_idx)
  
         if self.object_transformation is not None:
             samples = self.object_transformation(samples)
@@ -283,14 +283,16 @@ class ListeningDataset(Dataset):
 
 
         res['obj_id'] = np.array([o.object_id for o in context])
-        
+        # if scan_id == "scene0416_01":
+        #     print(res['obj_id'])
 
         # take care of padding, so that a batch has same number of N-objects across scans.
-        res['objects'] = pad_samples(samples, self.max_context_size)
+        # res['objects'] = pad_samples(samples, len(context))
+        res['objects'] = samples
         
-        res['object_mask'] = torch.zeros(self.max_context_size)
+        res['object_mask'] = torch.zeros(len(context))
         res['object_mask'][len(context):] = torch.tensor(-np.inf)
-        res['object_diag_mask'] = torch.ones((self.max_context_size, self.max_context_size))
+        res['object_diag_mask'] = torch.ones((len(context), len(context)))
         diag = torch.eye(len(context))
         res['object_diag_mask'][:len(context), :len(context)] = res['object_diag_mask'][:len(context), :len(context)] - diag
 
@@ -300,10 +302,10 @@ class ListeningDataset(Dataset):
         res['obj_size'] = np.array([o.get_size() for o in context]) #    [lx_,l_y,l_z]
         res['obj_position'] = np.array([o.get_center_position() for o in context])
 
-        color_f_tmp = np.zeros((self.max_context_size, 13), dtype=np.float32)
-        color_t_tmp = np.zeros((self.max_context_size, 1), dtype=np.long)
-        size_tmp = np.zeros((self.max_context_size, 3), dtype=np.float32)
-        position_tmp = np.zeros((self.max_context_size, 3), dtype=np.float32)
+        color_f_tmp = np.zeros((len(context), 13), dtype=np.float32)
+        color_t_tmp = np.zeros((len(context), 1), dtype=np.long)
+        size_tmp = np.zeros((len(context), 3), dtype=np.float32)
+        position_tmp = np.zeros((len(context), 3), dtype=np.float32)
         color_f_tmp[:len(context)] = res['color_onehot']
         color_t_tmp[:len(context)] = res['color_token']
         size_tmp[:len(context)] = res['obj_size']
@@ -315,26 +317,26 @@ class ListeningDataset(Dataset):
         res['obj_position'] = position_tmp
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
         
-        res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
+        res['edge_vector'] = np.zeros((len(context), len(context), 3), dtype=np.float32)
 
         relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
         relation_matrix = relation_matrix[:, context_ind_of_scan, :]
 
         # ['above', 'below', 'front', 'back', 'farthest', 'closest', 'support', 'supported', 'between', 'allocentric']
-        res['edge_distance'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
-        res['edge_touch'] = np.zeros((self.max_context_size, self.max_context_size, 1), dtype=np.float32)
-        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(self.max_context_size, self.max_context_size, 1).float()
+        res['edge_distance'] = np.zeros((len(context), len(context), 1), dtype=np.float32)
+        res['edge_touch'] = np.zeros((len(context), len(context), 1), dtype=np.float32)
+        res['edge_attr'] = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).view(1,1,-1).repeat(len(context), len(context), 1).float()
         res['edge_attr'][:res['context_size'], :res['context_size']] = torch.tensor(relation_matrix)
 
         # # model the top and bottom
-        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
+        res['tb_attr'] = torch.zeros([len(context), 2])
         if self.args.model_attr or self.args.multi_attr:
             res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
         # res['tb_attr'][:len(context), 1] = 2
         # res['tb_attr'][:len(context), 0] = 1
         
         # # model middle or corner
-        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
+        res['mc_attr'] = torch.zeros([len(context), 2])
         if self.args.model_attr or self.args.multi_attr:
             res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
 
@@ -469,13 +471,13 @@ class ListeningDataset(Dataset):
 
 
         # Get a mask indicating which objects have the same instance-class as the target.
-        target_class_mask = np.zeros(self.max_context_size, dtype=np.bool)
+        target_class_mask = np.zeros(len(context), dtype=np.bool)
         target_class_mask[:len(context)] = [target.instance_label == o.instance_label for o in context]
 
         res['target_class'] = self.class_to_idx[target.instance_label]
         if anchor is not None:
             res['anchor_class'] = self.class_to_idx[anchor.instance_label]
-        # res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
+        # res['gt_class'] = torch.zeros([len(context), len(self.class_to_idx)])
         # for i in range(res['context_size']):
         #     res['gt_class'][i, res['class_labels'][i]] = 1
 
@@ -483,7 +485,7 @@ class ListeningDataset(Dataset):
         l = range(0, res['context_size'])
         error_ind = random.sample(l, error_num)
 
-        res['gt_class'] = torch.zeros([self.max_context_size, len(self.class_to_idx)])
+        res['gt_class'] = torch.zeros([len(context), len(self.class_to_idx)])
         for i in range(res['context_size']):
             if i in error_ind:
                 res['gt_class'][i] = F.softmax(torch.tensor(np.random.rand(len(self.class_to_idx))), dim = -1)
@@ -503,7 +505,7 @@ class ListeningDataset(Dataset):
 
         if self.visualization:
             distrators_pos = np.zeros((6))  # 6 is the maximum context size we used in dataset collection
-            object_ids = np.zeros((self.max_context_size))
+            object_ids = np.zeros((len(context)))
             j = 0
             for k, o in enumerate(context):
                 if o.instance_label == target.instance_label and o.object_id != target.object_id:

@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import numpy as np
 from itertools import combinations
 import sys
-sys.path.append('/data1/liyixuan/referit_my/referit3d/models/backbone/example/build')
+sys.path.append('/home/yixuan/R2G/models/modules/relation_calculation/build')
 import relation
- 
+import pdb
 # # nr3d
 # nr3dclass = ['table', 'alarm', 'armchair', 'backpack', 'bag', 'ball', 'banner', 'bar', 'basket', 'wall', 'cabinet', 'counter', 'door', 'bathtub', 'chair', 'bear', 'bed', 'bottles', 'bench', 'bicycle', 'bin', 'blackboard', 'blanket', 'blinds', 'board', 'boards', 'book', 'rack', 'books', 'bookshelf', 'bookshelves', 'bottle', 'bowl', 'box', 'boxes', 'bucket', 'doors', 'cabinets', 'calendar', 'camera', 'can', 'car', 'cardboard', 'carpet', 'cart', 'case', 'ceiling', 'fan', 'light', 'chest', 'clock', 'closet', 'floor', 'rod', 'shelf', 'cloth', 'clothes', 'clothing', 'coat', 'column', 'container', 'pot', 'copier', 'couch', 'cushion', 'crate', 'cup', 'cups', 'curtain', 'curtains', 'decoration', 'desk', 'lamp', 'dishwasher', 'dispenser', 'display', 'dolly', 'drawer', 'dresser', 'easel', 'machine', 'sign', 'faucet', 'fireplace', 'stand', 'ladder', 'folder', 'footrest', 'footstool', 'frame', 'furniture', 'futon', 'globe', 'guitar', 'hamper', 'rail', 'towel', 'hanging', 'hat', 'headboard', 'headphones', 'heater', 'jacket', 'keyboard', 'piano', 'laptop', 'ledge', 'legs', 'switch', 'luggage', 'magazine', 'mail', 'tray', 'map', 'mat', 'mattress', 'microwave', 'mirror', 'monitor', 'mouse', 'mug', 'nightstand', 'notepad', 'object', 'ottoman', 'oven', 'painting', 'paper', 'papers', 'person', 'photo', 'picture', 'pictures', 'pillar', 'pillow', 'pillows', 'pipe', 'pipes', 'plant', 'poster', 'printer', 'projector', 'screen', 'purse', 'radiator', 'railing', 'refrigerator', 'roomba', 'rug', 'seat', 'seating', 'shampoo', 'shirt', 'shoe', 'shoes', 'shorts', 'shower', 'walls', 'sink', 'soap', 'stair', 'staircase', 'stairs', 'statue', 'step', 'stool', 'sticker', 'stove', 'suitcase', 'suitcases', 'sweater', 'tank', 'telephone', 'thermostat', 'toaster', 'toilet', 'towels', 'tv', 'umbrella', 'vase', 'vent', 'wardrobe', 'whiteboard', 'window', 'windowsill', 'wood']
 nr_index = [[0, 116, 144, 173, 192, 197, 328, 342, 371, 446], [2, 3, 181], [4], [6], [7, 8, 165, 194, 207, 210, 212, 234, 255, 281, 311, 388, 479], [9, 27], [13], [14, 56, 211, 222], [16, 256], [18, 100, 101, 307, 308, 398, 499], [20, 62, 180, 245, 299, 481, 504], [21, 129, 247], [23, 63, 94, 156, 206, 394, 403], [25], [28, 87, 189, 190, 277, 298, 362, 413, 417, 419], [29, 452], [30, 61, 263, 412], [31], [32], [33], [36, 118, 143, 334, 337, 363, 432, 480], [37], [38], [39], [41, 60, 138, 139, 238], [42], [45, 291], [46, 109, 111, 112, 145, 151, 160, 164, 226, 266, 271, 356, 386, 474, 484, 502], [47], [48], [49], [51, 80, 120, 147, 289, 382, 407, 416, 509], [52], [53, 81, 113, 130, 204, 268, 433, 457], [54, 55, 332], [59], [64, 96, 158, 208, 286, 395], [65, 246], [67], [68], [69, 482], [72], [74], [75], [77], [79, 82, 150, 214, 235], [83, 93], [84, 178], [85, 261, 439], [90], [91], [92, 505], [97, 186, 396], [98, 367, 393], [99, 301, 306, 383, 436], [102], [103], [108], [110], [117], [121, 195, 335, 336, 434], [124, 347], [125], [127], [128, 137], [131], [133, 426], [134, 418], [135, 392], [136], [140], [141], [142, 252, 294, 501], [146], [148, 220, 315, 409, 464, 468], [149, 196], [155], [159], [161], [168], [172, 176, 269, 380, 497, 507, 508], [177, 401, 514], [179], [183], [187, 267, 292, 357, 424, 492], [191, 251], [193], [198], [199], [200], [203], [205], [209], [213], [217, 258], [219, 223, 359, 421], [221, 314, 316, 473], [224, 500], [225], [227], [228], [229, 512], [239], [242], [243, 321, 477], [254], [259], [260], [262, 445], [265], [270], [272], [273, 317, 483], [276], [278], [279], [283], [285], [287], [288], [290], [295], [296], [297], [302], [303, 459], [305], [310, 463], [318], [319], [320], [323], [324], [325], [326], [327], [329], [330], [333, 348], [343, 368], [345, 351], [352], [353, 377], [354], [358], [360], [364], [369], [372], [378], [379], [381], [384], [385], [387], [389], [390], [399], [402], [406], [420], [422], [423], [427], [428], [429, 431], [430], [437], [441], [442], [443], [447], [453], [455], [458], [460], [475], [491], [493], [496], [498], [503], [516], [518], [519], [520]]
@@ -66,36 +66,42 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         # -------------------------------------------------------------
         
         # -------------------------- c++ ------------------------------
-
-        origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
+        count = 0
+        new_origin_relation = torch.tensor(relation.get_relation(mask_obj_class.squeeze(-1), origin_relation, obj_distance.squeeze(-1), context_size))
         # -------------------------------------------------------------
                     
 
     else:
         
         # get top n class for objects
-        topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = False))## B x  N x n_object_class
-        topn_class_prob = F.softmax(topn_class[:, :, :n], dim =-1)# B x N x n, represent top n class probability
+        topn_class, topn_class_indx = (torch.sort(full_obj_prob, dim = -1, descending = True))## B x  N x n_object_class
+        topn_class_prob = F.softmax(topn_class[:, :, :3], dim =-1)# B x N x n, represent top n class probability
         topn_class_indx = topn_class_indx[:, :, :n]# B x N x n, represent top n class index
-        mask_obj_class = topn_class_indx + object_mask.unsqueeze(-1).repeat(1, 1, n) # B x N x n; represent the object class 
-        
-        batch_obj_class_line = mask_obj_class.view(bsz, num_obj * n) # B x (N x n)
-        batch_obj_prob_line = topn_class_prob.view(bsz, num_obj * n) # B x (N x n)
+        # mask_obj_class = topn_class_indx + object_mask.unsqueeze(-1).repeat(1, 1, n) # B x N x n; represent the object class 
+
+        batch_obj_class_line = topn_class_indx.reshape(bsz, num_obj * n) # B x (N x n)
+        batch_obj_prob_line = topn_class_prob[:, :, :n].reshape(bsz, num_obj * n) # B x (N x n)
         count_dist = dict()
-        for i in topn_class_indx[0].numpy():
-            if i[0] in count_dist:
-                count_dist[i[0]] += 1
+
+        for i in batch_obj_class_line.numpy()[0]:
+            if i in count_dist:
+                count_dist[i] += 1
             else:
-                count_dist[i[0]] = 1
+                count_dist[i] = 1
+        count = 0
+        for k, v in count_dist.items():
+            if v > 25:
+                count = count + 1
         print(context_size, count_dist)
+        # print(batch_obj_class_line, batch_obj_prob_line)
         print("*********")
 
-        
+
         
         # -------------------------- c++ ------------------------------
-        origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line.detach().numpy(), batch_obj_prob_line.detach().numpy(), origin_relation, obj_distance.squeeze(-1), context_size, n))
+        new_origin_relation = torch.tensor(relation.get_relation_topn(batch_obj_class_line.detach().numpy(), batch_obj_prob_line.detach().numpy(), origin_relation, obj_distance.squeeze(-1), context_size, n))
+        new_origin_relation[:, :, :, 4:6] = new_origin_relation[:, :, :, 4:6] / 2
         # -------------------------------------------------------------
-        
         # ------------------------ pytorch -----------------------------
         # for i in range(bsz):
         #     batch_obj_class = mask_obj_class[i]# N x n
@@ -128,8 +134,7 @@ def SR_Retrieval(mode = None, full_obj_prob = None, origin_relation = None, obj_
         #                         origin_relation[i, closet.long(), tar_ind, -5] += p_include.prod(dim = -1) * p_notinclude.prod(dim = -1)
         #                         origin_relation[i, farthest.long(), tar_ind, -6] += p_include.prod(dim = -1) * p_notinclude.prod(dim = -1)
         # -------------------------------------------------------------
-        
-    return origin_relation
+    return new_origin_relation, count 
                     
                      
     

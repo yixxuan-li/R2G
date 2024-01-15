@@ -88,7 +88,7 @@ class R2G(nn.Module):
         self.object_encoder = object_encoder
 
         ## token embedder
-        self.token_embed = token_embed
+        # self.token_embed = token_embed
 
         # Classifier heads
         self.object_clf = None
@@ -113,31 +113,31 @@ class R2G(nn.Module):
             elif 'nr3d' in args.referit3D_file:
                 self.mode = 'nr3d'
 
-        # ## NSM 
-        if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
-            if args.relation_cls_alpha == 0:
-                relation_clf = None
-            if args.target_cls_alpha == 0:
-                target_clf = None
-            if args.anchor_cls_alpha == 0:
-                anchor_clf = None
-            self.nsm = NSM( args,
-                            input_size = args.word_embedding_dim, 
-                            num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
-                            description_hidden_size = 256,
-                            target_clf = target_clf,
-                            relation_clf = relation_clf,
-                            anchor_clf = anchor_clf
-                            )
-        else:
-            self.nsm = NSM( 
-                            args,
-                            input_size = args.word_embedding_dim, 
-                            num_node_properties = num_node_properties, 
-                            num_instructions = 3, 
-                            description_hidden_size = 256
-                            )
+        # # ## NSM 
+        # if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
+        #     if args.relation_cls_alpha == 0:
+        #         relation_clf = None
+        #     if args.target_cls_alpha == 0:
+        #         target_clf = None
+        #     if args.anchor_cls_alpha == 0:
+        #         anchor_clf = None
+        #     self.nsm = NSM( args,
+        #                     input_size = args.word_embedding_dim, 
+        #                     num_node_properties = num_node_properties, 
+        #                     num_instructions = 3, 
+        #                     description_hidden_size = 256,
+        #                     target_clf = target_clf,
+        #                     relation_clf = relation_clf,
+        #                     anchor_clf = anchor_clf
+        #                     )
+        # else:
+        #     self.nsm = NSM( 
+        #                     args,
+        #                     input_size = args.word_embedding_dim, 
+        #                     num_node_properties = num_node_properties, 
+        #                     num_instructions = 3, 
+        #                     description_hidden_size = 256
+        #                     )
 
 
 
@@ -160,15 +160,15 @@ class R2G(nn.Module):
             result['class_logits'] = get_siamese_features(self.object_clf, objects_classifier_features, torch.stack)
 
         # Embedder the language, property and vocab
-        language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
-        property_embedding =  self.token_embed(torch.LongTensor(self.property_embedding).cuda()).float()
-        concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
+        # language_embedding = self.token_embed(batch['tokens']).float()## B X n_token X embedding        
+        # property_embedding =  self.token_embed(torch.LongTensor(self.property_embedding).cuda()).float()
+        # concept_vocab = self.token_embed(torch.LongTensor(self.concept_vocab).cuda()).float()
         
         instructions = None
         instructions_mask = None
-        if self.args.use_LLM:
-            instructions = self.token_embed(batch['ins_token'])
-            instructions_mask = batch['ins_mask']
+        # if self.args.use_LLM:
+        #     instructions = self.token_embed(batch['ins_token'])
+        #     instructions_mask = batch['ins_mask']
         # concept_vocab_set = self.token_embed(torch.LongTensor(self.concept_vocab_set).cuda()).float()
 
         # Using GT or not
@@ -179,41 +179,41 @@ class R2G(nn.Module):
 
         # Construct node representation 
         batch_size, num_objects, _ = object_class_prob.shape
-        # Identity information 
-        object_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[:self.concept_vocab_seg[0]], 'c h -> b c h', b = batch_size))
-        # Function information
-        function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
-        # Color information
-        color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
-        if self.args.model_attr:
-            if self.args.multi_attr:
-                ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
-                lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
-                obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
-                obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+        # # Identity information 
+        # object_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[:self.concept_vocab_seg[0]], 'c h -> b c h', b = batch_size))
+        # # Function information
+        # function_semantic_prob = torch.matmul(object_class_prob, repeat(concept_vocab[self.concept_vocab_seg[1]:self.concept_vocab_seg[2]], 'c h -> b c h', b = batch_size))
+        # # Color information
+        # color_semantic_prob = torch.matmul(batch['color_onehot'], repeat(concept_vocab[self.concept_vocab_seg[0]:self.concept_vocab_seg[1]], 'c h -> b c h', b = batch_size))
+        # if self.args.model_attr:
+        #     if self.args.multi_attr:
+        #         ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
+        #         lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1), \
+        #         obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1), \
+        #         obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-                ls_attr = torch.matmul(ls_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
-                tl_attr = torch.matmul(tl_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]], 'c h -> b c h', b = batch_size))
-                mc_attr = torch.matmul(batch['mc_attr'], repeat(concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]], 'c h -> b c h', b = batch_size)) 
-                tb_attr = torch.matmul(batch['tb_attr'], repeat(concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]], 'c h -> b c h', b = batch_size))
-                lr_attr = torch.matmul(F.softmax(lr_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]], 'c h -> b c h', b = batch_size))
-                losh_attr = torch.matmul(losh_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]], 'c h -> b c h', b = batch_size))
-                curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]], ' c h -> b c h', b = batch_size))
+        #         ls_attr = torch.matmul(ls_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
+        #         tl_attr = torch.matmul(tl_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[3]:self.concept_vocab_seg[4]], 'c h -> b c h', b = batch_size))
+        #         mc_attr = torch.matmul(batch['mc_attr'], repeat(concept_vocab[self.concept_vocab_seg[4]:self.concept_vocab_seg[5]], 'c h -> b c h', b = batch_size)) 
+        #         tb_attr = torch.matmul(batch['tb_attr'], repeat(concept_vocab[self.concept_vocab_seg[5]:self.concept_vocab_seg[6]], 'c h -> b c h', b = batch_size))
+        #         lr_attr = torch.matmul(F.softmax(lr_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[6]:self.concept_vocab_seg[7]], 'c h -> b c h', b = batch_size))
+        #         losh_attr = torch.matmul(losh_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[7]:self.concept_vocab_seg[8]], 'c h -> b c h', b = batch_size))
+        #         curve_attr = torch.matmul(F.softmax(curve_logits, dim = -1), repeat(concept_vocab[self.concept_vocab_seg[8]:self.concept_vocab_seg[9]], ' c h -> b c h', b = batch_size))
 
-                node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
-            else:
-                ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
-                lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1),\
-                    obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1),\
-                    obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
+        #         node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), ls_attr.unsqueeze(2), tl_attr.unsqueeze(2), mc_attr.unsqueeze(2), tb_attr.unsqueeze(2), lr_attr.unsqueeze(2), losh_attr.unsqueeze(2), curve_attr.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
+        #     else:
+        #         ls_logits, tl_logits, losh_logits = Attr_Compute(self.mode, batch, object_class_prob, batch['object_mask'], batch['context_size'])
+        #         lr_logits, curve_logits = self.attribute_pred(obj_feature = torch.cat([scene_feature, objects_features], dim = 1),\
+        #             obj_center = torch.cat([batch['scene_center'].cuda().unsqueeze(1), batch['obj_position'].cuda()], dim = 1),\
+        #             obj_size = torch.cat([batch['scene_size'].cuda().unsqueeze(1), batch['obj_size'].cuda()], dim =1), object_mask = batch['object_mask'].cuda()) # Bx N x N xk
 
-                obj_attr_logits = torch.cat([ls_logits, tl_logits, batch['mc_attr'], batch['tb_attr'], lr_logits, losh_logits, curve_logits], dim = -1)
-                obj_attr_semantic = torch.matmul(obj_attr_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
-                # obj_attr = torch.cat([F.softmax(ls_logits, dim = -1), F.softmax(tl_logits, dim = -1), F.softmax(mc_logits, dim = -1), F.softmax(tb_logits, dim = -1), F.softmax(lr_logits, dim = -1), F.softmax(losh_logits, dim = -1)], dim = -1)
-                #          B x N x k       K x embedding 
-                node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), obj_attr_semantic.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
-        else:
-            node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
+        #         obj_attr_logits = torch.cat([ls_logits, tl_logits, batch['mc_attr'], batch['tb_attr'], lr_logits, losh_logits, curve_logits], dim = -1)
+        #         obj_attr_semantic = torch.matmul(obj_attr_logits.float(), repeat(concept_vocab[self.concept_vocab_seg[2]:self.concept_vocab_seg[3]], 'c h -> b c h', b = batch_size))
+        #         # obj_attr = torch.cat([F.softmax(ls_logits, dim = -1), F.softmax(tl_logits, dim = -1), F.softmax(mc_logits, dim = -1), F.softmax(tb_logits, dim = -1), F.softmax(lr_logits, dim = -1), F.softmax(losh_logits, dim = -1)], dim = -1)
+        #         #          B x N x k       K x embedding 
+        #         node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2), obj_attr_semantic.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
+        # else:
+        #     node_attr = torch.cat([object_semantic_prob.unsqueeze(2), color_semantic_prob.unsqueeze(2), function_semantic_prob.unsqueeze(2)], 2) # B X N X embedding -> B X N X L+1 X embedding, (B * 52 * 2 * 300) 
 
 
 
@@ -226,15 +226,15 @@ class R2G(nn.Module):
 
         ## Construct edge representation
         # Get the relation vocab
-        relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
+        # relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
         edge_prob = edge_prob_logits = None
         # B x N x N x prob_softmax   * probmax x embedding     ->     B X N X N X onehot_dim -> B X N X N X embedding, (B * n * n * 300)
         if self.args.relation_pred:
             edge_prob, edge_prob_logits = self.relation_pred(dis_vec = batch['edge_vector'].cuda(), obj_feature = objects_features, object_mask = batch['object_mask'].cuda()) # Bx N x N xk
-            edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
+            # edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         elif self.args.relation_retrieval:
-            edge_prob_logits = SR_Retrieval(self.mode, object_class_prob.cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'], n = 1).cuda().float()
-            
+            edge_prob_logits, count = SR_Retrieval(self.mode, result['class_logits'].cpu(), batch['edge_attr'],  torch.Tensor(batch['edge_distance']), batch['object_mask'], batch['context_size'], n = 0)
+            # edge_prob_logits = None
             # ## Debug
             # for i in range(batch_size):
             #     rela_sum[batch['sr_type'][i]] = rela_sum[batch['sr_type'][i]] + 1
@@ -248,28 +248,29 @@ class R2G(nn.Module):
             # result['rela_dis'] = rela_dis
             # result['rela_sum'] = rela_sum
             
-            edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
+            # edge_attr = torch.matmul(edge_prob_logits, repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
         else:
-            edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
+            # edge_attr = torch.matmul(batch['edge_attr'].cuda(), repeat(relation_vocab, 'c h -> b n c h', b = batch_size, n = num_objects))
             edge_prob_logits = batch['edge_attr'].cuda().float()
         
-        final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
+        # final_node_distribution, encoded_questions, prob , all_instruction, anchor_logits, lang_relation_logits, target_logits = self.nsm(self.args, node_attr = node_attr, edge_attr = edge_attr, description = language_embedding, concept_vocab = concept_vocab, concept_vocab_seg = self.concept_vocab_seg, property_embeddings = property_embedding, node_mask = batch['object_mask'].cuda(), context_size = batch['context_size'].cuda(), lang_mask = batch['lang_mask'].cuda().float(), instructions = instructions, instructions_mask = instructions_mask)
 
             
         # Get the final weights over the nodes
-        result['logits'] = final_node_distribution + batch['object_mask'].cuda()
+        # result['logits'] = final_node_distribution + batch['object_mask'].cuda()
         
-        if self.args.relation_cls_alpha > 0:
-            result['relation_logits'] = lang_relation_logits
+        # if self.args.relation_cls_alpha > 0:
+        #     result['relation_logits'] = lang_relation_logits
 
-        # Classify the target instance label based on the text
-        if self.args.target_cls_alpha > 0:
-            result['target_logits'] = target_logits
+        # # Classify the target instance label based on the text
+        # if self.args.target_cls_alpha > 0:
+        #     result['target_logits'] = target_logits
 
-        if self.args.anchor_cls_alpha > 0:
-            result['anchor_logits'] = anchor_logits
+        # if self.args.anchor_cls_alpha > 0:
+        #     result['anchor_logits'] = anchor_logits
 
-        return edge_prob_logits
+        return edge_prob_logits, count
+        # return result
 
 def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: int, class_to_index: dict) -> nn.Module:
     """
