@@ -4,3 +4,6 @@
 /models/modules/relation_calculation/pybind11/*
 **/__pycache__
 /datasets/data/*
+/bash/*
+/datasets/data/*
+/models/modules/default_blocks.py
