@@ -450,12 +450,13 @@ class ListeningDataset(Dataset):
                         elif allo_relation == 3:
                             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
                 if i < j:
+                    if  self.args.relation_pred:
                     # j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
-                    j_position = res['obj_position'][j]
-                    res['edge_vector'][i][j] = i_position - j_position
-                    res['edge_vector'][j][i] = - res['edge_vector'][i][j]
-                    res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
-                    res['edge_distance'][j][i] = res['edge_distance'][i][j]
+                        j_position = res['obj_position'][j]
+                        res['edge_vector'][i][j] = i_position - j_position
+                        res['edge_vector'][j][i] = - res['edge_vector'][i][j]
+                        res['edge_distance'][i][j] = np.sqrt(np.sum(np.square(res['edge_vector'][i][j]), axis = 0))
+                        res['edge_distance'][j][i] = res['edge_distance'][i][j]
                     # if res['edge_distance'][i][j] < context[i].get_object_radius() + context[j].get_object_radius():
                     #     # support supported
                     #     if (np.abs(res['edge_vector'][i][j][1])*2 < j_size[1] or np.abs(res['edge_vector'][i][j][1])*2 < i_size[1]) \
