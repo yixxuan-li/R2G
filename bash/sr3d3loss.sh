@@ -26,11 +26,10 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl\
         --relation_fromfile True\
         --use_LLM False\
-        --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth\
-
-        # --resume-path /data1/liyixuan/R2G/log/testGT/01-14-2024-16-20-53/checkpoints/best_model.pth\
+        --resume-path /data1/liyixuan/R2G/log/IJCAI_between_3loss/01-08-2024-14-18-34/checkpoints/best_model.pth\
+        --mode evaluate\
+        # --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth\
         # --fine-tune True
-        # --mode evaluate\
         # --vocab-file /data1/liyixuan/data/vocab_nobetween.pkl\
         # --resume-path /data1/liyixuan/R2G/log/AAAI_sr3d_4loss_end2end_nobwtween/08-11-2023-21-31-51/checkpoints/best_model.pth\
         # --mode evaluate\
