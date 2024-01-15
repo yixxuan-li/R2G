@@ -20,7 +20,7 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --relation-cls-alpha 0.1\
         --relation_fromfile True\
         --use-GT False\
-        --with_between False\
+        --with_between True\
         --model-attr False\
         --multi-attr False\
         --scan-relation-path /data1/liyixuan/data/top2_relation_all.pkl\
@@ -28,6 +28,7 @@ CUDA_VISIBLE_DEVICES=${CUDA_ID} python train.py\
         --use_LLM False\
         --resume-path /data1/liyixuan/R2G/log/IJCAI_between_3loss/01-08-2024-14-18-34/checkpoints/best_model.pth\
         --mode evaluate\
+        --edge_onehot True
         # --obj-cls-path /data1/liyixuan/data/pretrained_cls.pth\
         # --fine-tune True
         # --vocab-file /data1/liyixuan/data/vocab_nobetween.pkl\

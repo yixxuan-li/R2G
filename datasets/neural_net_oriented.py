@@ -64,11 +64,11 @@ def load_referential_data(args, referit_csv, scans_split):
         referit_data.reset_index(drop=True, inplace=True)
         print('Dropping utterances with between {}->{}'.format(n_original, len(referit_data)))
 
-    n_original = len(referit_data)
-    for key in {'scene0657_00', 'scene0056_01', 'scene0317_00', 'scene0666_00', 'scene0422_00', 'scene0403_01', 'scene0208_00', 'scene0666_01', 'scene0408_00', 'scene0403_00', 'scene0088_03', 'scene0140_00', 'scene0384_00', 'scene0621_00', 'scene0140_01', 'scene0624_00', 'scene0558_02', 'scene0336_01', 'scene0411_01', 'scene0064_01', 'scene0040_00', 'scene0245_00', 'scene0466_01', 'scene0411_02', 'scene0669_01', 'scene0030_00', 'scene0692_02', 'scene0692_01', 'scene0092_03', 'scene0030_02', 'scene0500_00', 'scene0525_00', 'scene0092_04', 'scene0141_01', 'scene0673_05', 'scene0692_00', 'scene0336_00', 'scene0141_02', 'scene0673_04', 'scene0218_00', 'scene0566_00', 'scene0054_00', 'scene0500_01', 'scene0525_01', 'scene0218_01', 'scene0141_00', 'scene0064_00', 'scene0220_01'}:
-        referit_data = referit_data[referit_data['scan_id'] != key]
-        referit_data.reset_index(drop=True, inplace=True)
-    print('Dropping utterances in relation {}->{}'.format(n_original, len(referit_data)))
+    # n_original = len(referit_data)
+    # for key in {'scene0657_00', 'scene0056_01', 'scene0317_00', 'scene0666_00', 'scene0422_00', 'scene0403_01', 'scene0208_00', 'scene0666_01', 'scene0408_00', 'scene0403_00', 'scene0088_03', 'scene0140_00', 'scene0384_00', 'scene0621_00', 'scene0140_01', 'scene0624_00', 'scene0558_02', 'scene0336_01', 'scene0411_01', 'scene0064_01', 'scene0040_00', 'scene0245_00', 'scene0466_01', 'scene0411_02', 'scene0669_01', 'scene0030_00', 'scene0692_02', 'scene0692_01', 'scene0092_03', 'scene0030_02', 'scene0500_00', 'scene0525_00', 'scene0092_04', 'scene0141_01', 'scene0673_05', 'scene0692_00', 'scene0336_00', 'scene0141_02', 'scene0673_04', 'scene0218_00', 'scene0566_00', 'scene0054_00', 'scene0500_01', 'scene0525_01', 'scene0218_01', 'scene0141_00', 'scene0064_00', 'scene0220_01'}:
+    #     referit_data = referit_data[referit_data['scan_id'] != key]
+    #     referit_data.reset_index(drop=True, inplace=True)
+    # print('Dropping utterances in relation {}->{}'.format(n_original, len(referit_data)))
 
 
     if  not args.use_LLM:
