@@ -380,7 +380,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
         relation_onehot = torch.tensor([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
     onehot_relation_semantic_token = F.one_hot(relation_onehot).float().cuda()
 
-
+    relation_vocab = None
     if args.model_attr:
         if args.multi_attr:
             concept_vocab = object_semantic_filtertoken + color_semantic_token + size_token + height_token + position_token + orientation_token + end_length + length_token + curve_token + relation_semantic_token

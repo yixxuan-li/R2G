@@ -438,7 +438,7 @@ class ListeningDataset(Dataset):
             for j in range(0, len(context)):
                 if i == j:
                     continue
-                if not self.args.relation_fromfile and self.args.relation_retrieval:
+                if not self.args.relation_fromfile and not self.args.relation_retrieval:
                     if context[j].has_front_direction:
                         allo_relation = get_allocentric_relation(context[j], context[i]) 
                         if allo_relation == 0:
@@ -450,7 +450,7 @@ class ListeningDataset(Dataset):
                         elif allo_relation == 3:
                             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
                 if i < j:
-                    if  self.args.relation_pred:
+                    if  self.args.relation_pred or self.args.relation_retrieval:
                     # j_size = res['obj_size'][j]  #[lx_,l_y,l_z]
                         j_position = res['obj_position'][j]
                         res['edge_vector'][i][j] = i_position - j_position
@@ -468,7 +468,7 @@ class ListeningDataset(Dataset):
                     #         elif res['edge_vector'][i][j][2] < 0:
                     #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                     #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-                    if not self.args.relation_fromfile and self.args.relation_retrieval:
+                    if not self.args.relation_fromfile and not self.args.relation_retrieval:
                         # above below
                         target_extrema = context[i].get_axis_align_bbox().extrema
                         target_zmin = target_extrema[2]
@@ -499,7 +499,7 @@ class ListeningDataset(Dataset):
                         if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
                             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-            if not self.args.relation_fromfile and self.args.relation_retrieval:
+            if not self.args.relation_fromfile and not self.args.relation_retrieval:
                 if res['tb_attr'][i, 1] != 1:
                     res['tb_attr'][i, 1] = 0
                 if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):
