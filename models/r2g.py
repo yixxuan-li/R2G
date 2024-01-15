@@ -116,10 +116,13 @@ class R2G(nn.Module):
         elif 'nr3d' in args.referit3D_file:
             self.mode = 'nr3d'
 
-        if args.with_between:
-            relation_dim = 11
+        if args.edge_onehot:
+            if args.with_between:
+                relation_dim = 11
+            else:
+                relation_dim = 10
         else:
-            relation_dim = 10
+            relation_dim = args.word_embedding_dim
 
         # ## NSM 
         if args.relation_cls_alpha + args.target_cls_alpha + args.anchor_cls_alpha > 0:    
@@ -239,8 +242,11 @@ class R2G(nn.Module):
 
         ## Construct edge representation
         # Get the relation vocab
-        # relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
-        relation_vocab = self.relation_vocab
+        if self.args.edge_onehot:
+            relation_vocab = self.relation_vocab
+        else:
+            relation_vocab = concept_vocab[self.concept_vocab_seg[-2]:]
+
         edge_prob = edge_prob_logits = None
         # B x N x N x prob_softmax   * probmax x embedding     ->     B X N X N X onehot_dim -> B X N X N X embedding, (B * n * n * 300)
         if self.args.relation_pred:
@@ -395,11 +401,12 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token),\
                                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]  
-    elif True:
-        concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token
+    elif args.edge_onohot:
+        concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_token
         concept_vocab_seg = [len(object_semantic_filtertoken), \
                                 len(object_semantic_filtertoken) + len(color_semantic_token), \
-                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)]   
+                                    len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
+                                            len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token) + len(relation_semantic_token)]     
         relation_vocab = onehot_relation_semantic_token
     else:
         concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_token

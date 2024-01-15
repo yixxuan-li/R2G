@@ -365,7 +365,21 @@ class ListeningDataset(Dataset):
         res['obj_size'] = size_tmp
         res['obj_position'] = position_tmp
         # res['token_embedding'] = self.embedder(torch.LongTensor(tokens))
-        
+
+
+        # # model the top and bottom
+        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
+        if self.args.model_attr or self.args.multi_attr:
+            res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
+    
+        # # model middle or corner
+        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
+        if self.args.model_attr or self.args.multi_attr:
+            res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
+
+        relation_matrix = scan.relation_matrix[context_ind_of_scan, :, :]
+        relation_matrix = relation_matrix[:, context_ind_of_scan, :]
+
         res['edge_vector'] = np.zeros((self.max_context_size, self.max_context_size, 3), dtype=np.float32)
         if self.args.relation_fromfile:
             context_ind_of_scan = np.array([np.where(scan_relation['obj_id'][0] == o.object_id)[0][0] for o in context])
@@ -387,17 +401,9 @@ class ListeningDataset(Dataset):
         #     relation_matrix[9, 13, 5] = 0
         #     print(relation_matrix[3, 13], relation_matrix[9, 13])
 
-        # # model the top and bottom
-        res['tb_attr'] = torch.zeros([self.max_context_size, 2])
-        if self.args.model_attr or self.args.multi_attr:
-            res['tb_attr'][:res['context_size']] = torch.tensor(scan.tb_attr[context_ind_of_scan,:])
         # res['tb_attr'][:len(context), 1] = 2
         # res['tb_attr'][:len(context), 0] = 1
         
-        # # model middle or corner
-        res['mc_attr'] = torch.zeros([self.max_context_size, 2])
-        if self.args.model_attr or self.args.multi_attr:
-            res['mc_attr'][:res['context_size']] = torch.tensor(scan.mc_attr[context_ind_of_scan,:])
 
 
         # for j, o in enumerate(context):
@@ -432,7 +438,7 @@ class ListeningDataset(Dataset):
             for j in range(0, len(context)):
                 if i == j:
                     continue
-                if not self.args.relation_fromfile:
+                if not self.args.relation_fromfile and self.args.relation_retrieval:
                     if context[j].has_front_direction:
                         allo_relation = get_allocentric_relation(context[j], context[i]) 
                         if allo_relation == 0:
@@ -461,7 +467,7 @@ class ListeningDataset(Dataset):
                     #         elif res['edge_vector'][i][j][2] < 0:
                     #             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                     #             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-                    if not self.args.relation_fromfile:
+                    if not self.args.relation_fromfile and self.args.relation_retrieval:
                         # above below
                         target_extrema = context[i].get_axis_align_bbox().extrema
                         target_zmin = target_extrema[2]
@@ -492,7 +498,7 @@ class ListeningDataset(Dataset):
                         if i_anchor_ratio > 0.2 and abs(target_top_anchor_bottom_dist) <= 0.15 and anchor_target_area_ratio < 1.5:
                             res['edge_attr'][i][j] += torch.tensor([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
                             res['edge_attr'][j][i] += torch.tensor([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-            if not self.args.relation_fromfile:
+            if not self.args.relation_fromfile and self.args.relation_retrieval:
                 if res['tb_attr'][i, 1] != 1:
                     res['tb_attr'][i, 1] = 0
                 if (res['tb_attr'][i, 0] == 1) and (res['tb_attr'][i, 1] == 1):

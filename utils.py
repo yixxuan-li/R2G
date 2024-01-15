@@ -726,8 +726,8 @@ def load_state_dicts(checkpoint_file, obj_cls_path, map_location=None, **kwargs)
                 _k = k.replace("scene_graph.single_object_encoder", "object_encoder")
                 nsm[_k] = v
             if "scene_graph.object_mlp" in k:
-                # if '8' in k:
-                #     continue
+                if '8' in k:
+                    continue
                 _k = k.replace("scene_graph.object_mlp", "object_clf")
                 nsm[_k] = v
 
