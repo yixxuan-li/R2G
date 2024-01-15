@@ -401,7 +401,7 @@ def create_r2g_net(args: argparse.Namespace, vocab: Vocabulary, n_obj_classes: i
                                         len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token), \
                                             len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token),\
                                                 len(object_semantic_filtertoken) + len(color_semantic_token) + len(function_semantic_token)  + len(attribute_token) + len(relation_semantic_token)]  
-    elif args.edge_onohot:
+    elif args.edge_onehot:
         concept_vocab = object_semantic_filtertoken + color_semantic_token + function_semantic_token + relation_semantic_token
         concept_vocab_seg = [len(object_semantic_filtertoken), \
                                 len(object_semantic_filtertoken) + len(color_semantic_token), \

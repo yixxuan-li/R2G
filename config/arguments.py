@@ -95,7 +95,7 @@ def parse_arguments(notebook_options=None):
     parser.add_argument('--use-GT', type=str2bool, default = True, help='True to use GT')
     parser.add_argument('--implicity-instruction', type=str2bool, default = False, help='True to use GT')
     parser.add_argument('--use_LLM', type=str2bool, default = False, help = 'True to use LLM to process the language')
-    parser.add_argument('--edge_onohot', type=str2bool, default = False, help = 'True to use LLM to process the language')
+    parser.add_argument('--edge_onehot', type=str2bool, default = False, help = 'True to use LLM to process the language')
     #
     # Misc arguments
     #
