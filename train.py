@@ -282,12 +282,12 @@ if __name__ == '__main__':
         meters = evaluate_on_dataset(model, data_loaders['test'], criteria, device, pad_idx, args=args)
         print('Reference-Accuracy: {:.4f}'.format(meters['test_referential_acc']))
         print('Object-Clf-Accuracy: {:.4f}'.format(meters['test_object_cls_acc']))
-        exit()
 
         out_file = osp.join(args.checkpoint_dir, 'test_result.txt')
         res = analyze_predictions(model, data_loaders['test'].dataset, class_to_idx, pad_idx, device,
                                  args, out_file=out_file)
         print(res)
+        exit()
         
 
         def collate_my(batch_data):
